@@ -552,15 +552,15 @@ class AutoLicenseDelivery {
         <div class="ald-dashboard">
             <h1 style="color: #333; margin-bottom: 30px;">📊 License Keys Dashboard</h1>
             
-            <div class="ald-stats-grid">
-                <div class="ald-stat-card">
-                    <div class="ald-stat-number"><?php echo $total_products; ?></div>
-                    <div class="ald-stat-label">Products with Licenses</div>
-                </div>
-                <div class="ald-stat-card">
-                    <div class="ald-stat-number"><?php echo $total_licenses; ?></div>
-                    <div class="ald-stat-label">Total License Keys</div>
-                </div>
+                         <div class="ald-stats-grid">
+                 <div class="ald-stat-card">
+                     <div class="ald-stat-number"><?php echo $total_products; ?></div>
+                     <div class="ald-stat-label">Licensed Products</div>
+                 </div>
+                 <div class="ald-stat-card">
+                     <div class="ald-stat-number"><?php echo $total_licenses; ?></div>
+                     <div class="ald-stat-label">Total License Keys</div>
+                 </div>
                 <div class="ald-stat-card">
                     <div class="ald-stat-number"><?php echo $total_sold; ?></div>
                     <div class="ald-stat-label">Sold Licenses</div>
@@ -650,11 +650,9 @@ class AutoLicenseDelivery {
     private function get_products_with_licenses() {
         global $wpdb;
         return $wpdb->get_results("
-            SELECT DISTINCT p.ID, p.post_title 
+            SELECT p.ID, p.post_title 
             FROM {$wpdb->posts} p 
-            INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id 
             WHERE p.post_type = 'product' 
-            AND pm.meta_key = '_ald_license_keys'
             AND p.post_status = 'publish'
             ORDER BY p.post_title
         ");
