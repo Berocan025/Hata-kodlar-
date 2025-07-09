@@ -1,11 +1,11 @@
 <?php
 /**
- * Plugin Name: WooCommerce Auto License Delivery - Enhanced
- * Plugin URI: https://github.com/wiozen/auto-license-delivery
- * Description: Modern, güvenli ve şık lisans anahtarı teslim sistemi. WooCommerce siparişleri tamamlandığında otomatik olarak lisans anahtarları müşterilere gönderilir.
+ * Plugin Name: WooCommerce Otomatik Lisans Teslimatı - BERAT K Geliştirme
+ * Plugin URI: https://wa.me/905395115632
+ * Description: Modern, güvenli ve şık lisans anahtarı teslim sistemi. WooCommerce siparişleri tamamlandığında otomatik olarak lisans anahtarları müşterilere gönderilir. Geliştirici: BERAT K - 0539 511 56 32
  * Version: 2.1.0
- * Author: Wiozen Enhanced
- * Author URI: https://www.wiozen.com
+ * Author: BERAT K - 0539 511 56 32
+ * Author URI: https://wa.me/905395115632
  * Text Domain: auto-license-delivery
  * Domain Path: /languages
  * Requires at least: 5.6
@@ -16,6 +16,8 @@
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Network: false
+ * Developer: BERAT K - WhatsApp: +90 539 511 56 32
+ * Support: https://wa.me/905395115632
  */
 
 // Güvenlik kontrolü
@@ -29,7 +31,8 @@ define('ALD_PLUGIN_FILE', __FILE__);
 define('ALD_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('ALD_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('ALD_PLUGIN_BASENAME', plugin_basename(__FILE__));
-define('ALD_LICENSE_KEY', hash('sha256', 'WİO-4142-1544-1151-4441'));
+define('ALD_LICENSE_KEY', hash('sha256', 'BERAT-K-DEVELOPER-LICENSE-KEY'));
+// Geliştirici: BERAT K - 0539 511 56 32 - WhatsApp: https://wa.me/905395115632
 
 /**
  * Ana Plugin Sınıfı
@@ -154,28 +157,29 @@ class AutoLicenseDelivery {
     }
     
     public function php_version_notice() {
-        echo '<div class="error"><p>Auto License Delivery requires PHP 7.4 or higher. You are running version ' . PHP_VERSION . '.</p></div>';
+        echo '<div class="error"><p>Otomatik Lisans Teslimatı PHP 7.4 veya üzeri gerektirir. Şu anda ' . PHP_VERSION . ' kullanıyorsunuz. Geliştirici: BERAT K - 0539 511 56 32</p></div>';
     }
     
     public function woocommerce_missing_notice() {
-        echo '<div class="error"><p>Auto License Delivery requires WooCommerce to be installed and active.</p></div>';
+        echo '<div class="error"><p>Otomatik Lisans Teslimatı WooCommerce\'in yüklü ve aktif olmasını gerektirir. Destek: BERAT K - WhatsApp ile iletişime geçin.</p></div>';
     }
     
     public function woocommerce_version_notice() {
-        echo '<div class="error"><p>Auto License Delivery requires WooCommerce 6.0 or higher.</p></div>';
+        echo '<div class="error"><p>Otomatik Lisans Teslimatı WooCommerce 6.0 veya üzeri gerektirir. İletişim: BERAT K - 0539 511 56 32</p></div>';
     }
     
     public function plugin_action_links($links) {
         $action_links = array(
-            'settings' => '<a href="' . admin_url('admin.php?page=auto-license-delivery') . '">Settings</a>',
+            'settings' => '<a href="' . admin_url('admin.php?page=auto-license-delivery') . '">Ayarlar</a>',
+            'developer' => '<a href="https://wa.me/905395115632" target="_blank">👨‍💻 BERAT K - Geliştirici</a>',
         );
         return array_merge($action_links, $links);
     }
     
     public function add_admin_menu() {
         add_menu_page(
-            'License Keys Management',
-            'License Keys',
+            'Lisans Anahtarı Yönetimi - BERAT K Geliştirme',
+            'Lisans Anahtarları',
             'manage_woocommerce',
             'auto-license-delivery',
             array($this, 'admin_page'),
@@ -199,11 +203,12 @@ class AutoLicenseDelivery {
             'url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('ald_admin_nonce'),
             'strings' => array(
-                'loading' => 'Loading...',
-                'success' => 'Success!',
-                'error' => 'Error occurred!',
-                'license_saved' => 'License keys saved successfully!',
-                'select_product' => 'Please select a product!',
+                'loading' => 'Yükleniyor...',
+                'success' => 'Başarılı!',
+                'error' => 'Hata oluştu! Destek: BERAT K - 0539 511 56 32',
+                'license_saved' => 'Lisans anahtarları başarıyla kaydedildi!',
+                'select_product' => 'Lütfen bir ürün seçin!',
+                'developer' => 'Geliştirici: BERAT K - WhatsApp: +90 539 511 56 32'
             )
         ));
     }
@@ -426,11 +431,11 @@ class AutoLicenseDelivery {
             update_option('ald_license_activated', true);
             update_option('ald_license_key_hash', hash('sha256', $license_key));
             add_action('admin_notices', function() {
-                echo '<div class="notice notice-success"><p>License activated successfully!</p></div>';
+                echo '<div class="notice notice-success"><p>🎉 Lisans başarıyla etkinleştirildi! Geliştirici: BERAT K - 0539 511 56 32</p></div>';
             });
         } else {
             add_action('admin_notices', function() {
-                echo '<div class="notice notice-error"><p>Invalid license key!</p></div>';
+                echo '<div class="notice notice-error"><p>❌ Geçersiz lisans anahtarı! Doğru anahtar için BERAT K ile iletişime geçin: WhatsApp +90 539 511 56 32</p></div>';
             });
         }
     }
@@ -462,7 +467,7 @@ class AutoLicenseDelivery {
         
         update_post_meta($product_id, '_ald_license_keys', $keys_array);
         
-        wp_send_json_success('License keys saved successfully!');
+        wp_send_json_success('Lisans anahtarları başarıyla kaydedildi! 🎉 Geliştirici: BERAT K');
     }
     
     private function get_product_license_stats($product_id) {
@@ -492,15 +497,15 @@ class AutoLicenseDelivery {
             <div class="ald-stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
                 <div class="ald-stat-card">
                     <div class="ald-stat-number"><?php echo $stats['total_keys']; ?></div>
-                    <div class="ald-stat-label">Available Keys</div>
+                    <div class="ald-stat-label">Mevcut Anahtarlar</div>
                 </div>
                 <div class="ald-stat-card">
                     <div class="ald-stat-number"><?php echo $stats['sold_count']; ?></div>
-                    <div class="ald-stat-label">Sold Keys</div>
+                    <div class="ald-stat-label">Satılan Anahtarlar</div>
                 </div>
                 <div class="ald-stat-card">
                     <div class="ald-stat-number"><?php echo $stats['usage_percentage']; ?>%</div>
-                    <div class="ald-stat-label">Usage Rate</div>
+                    <div class="ald-stat-label">Kullanım Oranı</div>
                 </div>
             </div>
         </div>
@@ -522,20 +527,27 @@ class AutoLicenseDelivery {
         <div class="ald-dashboard">
             <div class="ald-card" style="max-width: 500px; margin: 50px auto;">
                 <div class="ald-card-header">
-                    🔐 License Activation Required
+                    🔐 Lisans Etkinleştirme Gerekli
                 </div>
                 <div class="ald-card-body">
-                    <p>Please enter your license key to activate the plugin:</p>
+                    <p>Plugin'i etkinleştirmek için lütfen lisans anahtarınızı girin:</p>
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center;">
+                        <strong>👨‍💻 Geliştirici: BERAT K</strong><br>
+                        📱 <a href="https://wa.me/905395115632" target="_blank">WhatsApp: 0539 511 56 32</a>
+                    </div>
                     <form method="post" action="">
                         <?php wp_nonce_field('ald_activate_license', 'ald_nonce'); ?>
                         <div class="ald-form-group">
-                            <label class="ald-form-label">License Key:</label>
-                            <input type="text" name="license_key" class="ald-form-control" placeholder="WİO-4142-1544-1151-4441" required>
+                            <label class="ald-form-label">Lisans Anahtarı:</label>
+                            <input type="text" name="license_key" class="ald-form-control" placeholder="BERAT-K-DEVELOPER-LICENSE-KEY" required>
                         </div>
                         <button type="submit" name="ald_activate_license" class="ald-btn ald-btn-primary" style="width: 100%;">
-                            🚀 Activate License
+                            🚀 Lisansı Etkinleştir
                         </button>
                     </form>
+                    <p style="font-size: 12px; color: #666; text-align: center; margin-top: 15px;">
+                        Lisans anahtarı için BERAT K ile iletişime geçin
+                    </p>
                 </div>
             </div>
         </div>
@@ -550,36 +562,36 @@ class AutoLicenseDelivery {
         
         ?>
         <div class="ald-dashboard">
-            <h1 style="color: #333; margin-bottom: 30px;">📊 License Keys Dashboard</h1>
+            <h1 style="color: #333; margin-bottom: 30px;">📊 Lisans Anahtarları Paneli - BERAT K Geliştirme</h1>
             
-                         <div class="ald-stats-grid">
+            <div class="ald-stats-grid">
                  <div class="ald-stat-card">
                      <div class="ald-stat-number"><?php echo $total_products; ?></div>
-                     <div class="ald-stat-label">Licensed Products</div>
+                     <div class="ald-stat-label">Lisanslı Ürünler</div>
                  </div>
                  <div class="ald-stat-card">
                      <div class="ald-stat-number"><?php echo $total_licenses; ?></div>
-                     <div class="ald-stat-label">Total License Keys</div>
+                     <div class="ald-stat-label">Toplam Lisans Anahtarı</div>
                  </div>
                 <div class="ald-stat-card">
                     <div class="ald-stat-number"><?php echo $total_sold; ?></div>
-                    <div class="ald-stat-label">Sold Licenses</div>
+                    <div class="ald-stat-label">Satılan Lisanslar</div>
                 </div>
                 <div class="ald-stat-card">
                     <div class="ald-stat-number"><?php echo ($total_licenses - $total_sold); ?></div>
-                    <div class="ald-stat-label">Remaining Licenses</div>
+                    <div class="ald-stat-label">Kalan Lisanslar</div>
                 </div>
             </div>
             
             <div class="ald-card">
                 <div class="ald-card-header">
-                    🔑 License Key Management
+                    🔑 Lisans Anahtarı Yönetimi
                 </div>
                 <div class="ald-card-body">
                     <div class="ald-form-group">
-                        <label class="ald-form-label">Select Product:</label>
+                        <label class="ald-form-label">Ürün Seçin:</label>
                         <select id="product_select" class="ald-form-control">
-                            <option value="">Choose a product...</option>
+                            <option value="">Bir ürün seçin...</option>
                             <?php foreach ($products as $product): ?>
                                 <option value="<?php echo $product->ID; ?>"><?php echo esc_html($product->post_title); ?></option>
                             <?php endforeach; ?>
@@ -589,19 +601,23 @@ class AutoLicenseDelivery {
                     <div id="license_stats"></div>
                     
                     <div class="ald-form-group">
-                        <label class="ald-form-label">License Keys (one per line):</label>
-                        <textarea id="license_keys_textarea" class="ald-form-control" rows="10" placeholder="Enter license keys, one per line..."></textarea>
+                        <label class="ald-form-label">Lisans Anahtarları (her satırda bir tane):</label>
+                        <textarea id="license_keys_textarea" class="ald-form-control" rows="10" placeholder="Lisans anahtarlarını girin, her satırda bir tane..."></textarea>
                     </div>
                     
                     <button id="save_license_keys" class="ald-btn ald-btn-primary">
-                        💾 Save License Keys
+                        💾 Lisans Anahtarlarını Kaydet
                     </button>
+                    
+                    <div style="margin-top: 15px; padding: 10px; background: #f0f8ff; border-radius: 8px; text-align: center;">
+                        <small>👨‍💻 <strong>Geliştirici:</strong> BERAT K - 📱 <a href="https://wa.me/905395115632">0539 511 56 32</a></small>
+                    </div>
                 </div>
             </div>
             
             <div class="ald-card">
                 <div class="ald-card-header">
-                    📈 Recent License Sales
+                    📈 Son Lisans Satışları
                 </div>
                 <div class="ald-card-body">
                     <?php $this->display_recent_sales(); ?>
@@ -673,8 +689,11 @@ class AutoLicenseDelivery {
         
         if (empty($recent_sales)) {
             echo '<div style="text-align: center; padding: 40px; color: #666;">';
-            echo '<p>🎯 No license sales yet</p>';
-            echo '<p>Sales will appear here once customers start purchasing your licensed products.</p>';
+            echo '<p>🎯 Henüz lisans satışı yok</p>';
+            echo '<p>Müşteriler lisanslı ürünlerinizi satın aldığında satışlar burada görünecek.</p>';
+            echo '<div style="margin-top: 20px; padding: 15px; background: #f0f8ff; border-radius: 8px;">';
+            echo '<small>👨‍💻 <strong>Geliştirici:</strong> BERAT K - WhatsApp: <a href="https://wa.me/905395115632">0539 511 56 32</a></small>';
+            echo '</div>';
             echo '</div>';
             return;
         }
@@ -682,10 +701,10 @@ class AutoLicenseDelivery {
         echo '<table class="ald-table">';
         echo '<thead>';
         echo '<tr>';
-        echo '<th>Product</th>';
-        echo '<th>Customer</th>';
-        echo '<th>License Key</th>';
-        echo '<th>Date</th>';
+        echo '<th>Ürün</th>';
+        echo '<th>Müşteri</th>';
+        echo '<th>Lisans Anahtarı</th>';
+        echo '<th>Tarih</th>';
         echo '</tr>';
         echo '</thead>';
         echo '<tbody>';
@@ -718,10 +737,10 @@ class AutoLicenseDelivery {
         
         woocommerce_wp_textarea_input(array(
             'id' => '_ald_license_keys_text',
-            'label' => 'License Keys (one per line)',
-            'placeholder' => 'Enter license keys, one per line...',
+            'label' => 'Lisans Anahtarları (her satırda bir tane)',
+            'placeholder' => 'Lisans anahtarlarını girin, her satırda bir tane...',
             'desc_tip' => true,
-            'description' => 'License keys will be automatically delivered to customers upon order completion.',
+            'description' => 'Sipariş tamamlandığında lisans anahtarları otomatik olarak müşterilere teslim edilecek. Geliştirici: BERAT K - 0539 511 56 32',
             'value' => implode("\n", $license_keys),
             'custom_attributes' => array(
                 'rows' => 8,
@@ -729,7 +748,7 @@ class AutoLicenseDelivery {
             )
         ));
         
-        echo '<p class="form-field"><strong>Current Status:</strong> ' . count($license_keys) . ' license keys available</p>';
+        echo '<p class="form-field"><strong>Mevcut Durum:</strong> ' . count($license_keys) . ' lisans anahtarı mevcut | 👨‍💻 Geliştirici: BERAT K</p>';
         echo '</div>';
     }
     
@@ -785,7 +804,7 @@ class AutoLicenseDelivery {
                 $this->send_license_email($order, $product, $license_key);
                 
                 $order->add_order_note(
-                    sprintf('License key delivered: %s', $license_key),
+                    sprintf('🔑 Lisans anahtarı teslim edildi: %s (BERAT K Geliştirme)', $license_key),
                     false
                 );
                 
@@ -829,18 +848,36 @@ class AutoLicenseDelivery {
     private function send_license_email($order, $product, $license_key) {
         $customer_email = $order->get_billing_email();
         $customer_name = $order->get_billing_first_name();
-        $subject = sprintf('[%s] Your License Key for %s', get_bloginfo('name'), $product->get_name());
+        $subject = sprintf('[%s] %s Ürünü İçin Lisans Anahtarınız 🔑', get_bloginfo('name'), $product->get_name());
         
         $message = sprintf('
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #333;">🔑 Your License Key</h2>
-            <p>Hello %s,</p>
-            <p>Thank you for your purchase! Here is your license key for <strong>%s</strong>:</p>
-            <div style="background: #f8f9fa; padding: 20px; border: 2px solid #007cba; border-radius: 8px; margin: 20px 0; text-align: center;">
-                <code style="font-size: 18px; font-weight: bold; color: #007cba;">%s</code>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 20px;">
+            <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <h2 style="color: #333; text-align: center; margin-bottom: 30px;">🔑 Lisans Anahtarınız Hazır!</h2>
+                <p style="font-size: 16px;">Merhaba <strong>%s</strong>,</p>
+                <p style="font-size: 14px; color: #666;">Satın aldığınız için teşekkür ederiz! <strong>%s</strong> ürünü için lisans anahtarınız aşağıdadır:</p>
+                
+                <div style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 25px; border-radius: 12px; margin: 25px 0; text-align: center;">
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                        <code style="font-size: 18px; font-weight: bold; color: #333; word-break: break-all;">%s</code>
+                    </div>
+                    <p style="color: white; margin: 10px 0 0 0; font-size: 12px;">Bu anahtarı güvenli bir yerde saklayın</p>
+                </div>
+                
+                <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <p style="margin: 0; font-size: 14px; color: #1976d2;">
+                        💡 <strong>İpucu:</strong> Lisans anahtarlarınızı istediğiniz zaman hesap panelinizden görüntüleyebilirsiniz.
+                    </p>
+                </div>
+                
+                <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                
+                <div style="text-align: center; color: #666; font-size: 12px;">
+                    <p><strong>👨‍💻 Geliştirici:</strong> BERAT K</p>
+                    <p>📱 WhatsApp Destek: <a href="https://wa.me/905395115632" style="color: #25d366; text-decoration: none;">0539 511 56 32</a></p>
+                    <p style="margin-top: 20px;">Saygılarımızla,<br><strong>%s</strong></p>
+                </div>
             </div>
-            <p>You can also view your license keys anytime in your account dashboard.</p>
-            <p>Best regards,<br>%s</p>
         </div>
         ', $customer_name, $product->get_name(), $license_key, get_bloginfo('name'));
         
@@ -858,7 +895,7 @@ class AutoLicenseDelivery {
         foreach ($items as $key => $item) {
             $new_items[$key] = $item;
             if ('downloads' === $key) {
-                $new_items['license-keys'] = 'My License Keys';
+                $new_items['license-keys'] = '🔑 Lisans Anahtarlarım';
             }
         }
         return $new_items;
@@ -868,7 +905,7 @@ class AutoLicenseDelivery {
         $customer_id = get_current_user_id();
         
         if (!$customer_id) {
-            wc_print_notice('Please log in to view your license keys.', 'error');
+            wc_print_notice('Lisans anahtarlarınızı görüntülemek için lütfen giriş yapın.', 'error');
             return;
         }
         
@@ -884,33 +921,44 @@ class AutoLicenseDelivery {
             $customer_id
         ));
         
-        echo '<h2>🔑 My License Keys</h2>';
+        echo '<h2 style="color: #333; margin-bottom: 20px;">🔑 Lisans Anahtarlarım</h2>';
         
         if (empty($licenses)) {
-            echo '<div style="text-align: center; padding: 40px; color: #666;">You have no license keys yet.</div>';
+            echo '<div style="text-align: center; padding: 40px; color: #666; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">';
+            echo '<p style="font-size: 18px; margin-bottom: 10px;">📋 Henüz lisans anahtarınız yok</p>';
+            echo '<p>Lisanslı ürün satın aldığınızda anahtarlarınız burada görünecek.</p>';
+            echo '<div style="margin-top: 20px; padding: 15px; background: #f0f8ff; border-radius: 8px;">';
+            echo '<small>👨‍💻 <strong>Geliştirici:</strong> BERAT K - WhatsApp: <a href="https://wa.me/905395115632" style="color: #25d366;">0539 511 56 32</a></small>';
+            echo '</div>';
+            echo '</div>';
             return;
         }
         
-        echo '<table class="shop_table shop_table_responsive" style="margin-top: 20px;">';
-        echo '<thead>';
+        echo '<div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">';
+        echo '<table class="shop_table shop_table_responsive" style="margin: 0; border: none;">';
+        echo '<thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">';
         echo '<tr>';
-        echo '<th>Product Name</th>';
-        echo '<th>License Key</th>';
-        echo '<th>Purchase Date</th>';
+        echo '<th style="color: white; padding: 15px;">Ürün Adı</th>';
+        echo '<th style="color: white; padding: 15px;">Lisans Anahtarı</th>';
+        echo '<th style="color: white; padding: 15px;">Satın Alma Tarihi</th>';
         echo '</tr>';
         echo '</thead>';
         echo '<tbody>';
         
         foreach ($licenses as $license) {
-            echo '<tr>';
-            echo '<td><strong>' . esc_html($license->product_name) . '</strong></td>';
-            echo '<td><code style="background: #e9ecef; padding: 8px 12px; border-radius: 4px; font-family: monospace;">' . esc_html($license->license_key) . '</code></td>';
-            echo '<td>' . date('F j, Y', strtotime($license->created_at)) . '</td>';
+            echo '<tr style="border-bottom: 1px solid #f0f0f0;">';
+            echo '<td style="padding: 15px;"><strong style="color: #333;">' . esc_html($license->product_name) . '</strong></td>';
+            echo '<td style="padding: 15px;"><code style="background: #333; color: white; padding: 10px 15px; border-radius: 6px; font-family: monospace; font-size: 13px; word-break: break-all;">' . esc_html($license->license_key) . '</code></td>';
+            echo '<td style="padding: 15px; color: #666;">' . date('d F Y', strtotime($license->created_at)) . '</td>';
             echo '</tr>';
         }
         
         echo '</tbody>';
         echo '</table>';
+        echo '<div style="padding: 15px; background: #f8f9fa; border-top: 1px solid #eee; text-align: center;">';
+        echo '<small style="color: #666;">👨‍💻 <strong>Geliştirici:</strong> BERAT K - WhatsApp: <a href="https://wa.me/905395115632" style="color: #25d366; text-decoration: none;">0539 511 56 32</a></small>';
+        echo '</div>';
+        echo '</div>';
     }
     
     public function display_order_licenses($order) {
@@ -928,25 +976,30 @@ class AutoLicenseDelivery {
         ));
         
         if (!empty($licenses)) {
-            echo '<h2>🔑 License Keys</h2>';
-            echo '<table class="woocommerce-table woocommerce-table--order-downloads shop_table shop_table_responsive order_downloads">';
-            echo '<thead>';
+            echo '<h2 style="color: #333; margin: 30px 0 20px 0;">🔑 Lisans Anahtarlarınız</h2>';
+            echo '<div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: 20px 0;">';
+            echo '<table class="woocommerce-table woocommerce-table--order-downloads shop_table shop_table_responsive order_downloads" style="margin: 0; border: none;">';
+            echo '<thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">';
             echo '<tr>';
-            echo '<th>Product</th>';
-            echo '<th>License Key</th>';
+            echo '<th style="color: white; padding: 15px;">Ürün</th>';
+            echo '<th style="color: white; padding: 15px;">Lisans Anahtarı</th>';
             echo '</tr>';
             echo '</thead>';
             echo '<tbody>';
             
             foreach ($licenses as $license) {
-                echo '<tr>';
-                echo '<td>' . esc_html($license->product_name) . '</td>';
-                echo '<td><code style="background: #f8f9fa; padding: 8px; border-radius: 4px;">' . esc_html($license->license_key) . '</code></td>';
+                echo '<tr style="border-bottom: 1px solid #f0f0f0;">';
+                echo '<td style="padding: 15px;"><strong style="color: #333;">' . esc_html($license->product_name) . '</strong></td>';
+                echo '<td style="padding: 15px;"><code style="background: #333; color: white; padding: 10px 15px; border-radius: 6px; font-family: monospace; font-size: 13px; word-break: break-all;">' . esc_html($license->license_key) . '</code></td>';
                 echo '</tr>';
             }
             
             echo '</tbody>';
             echo '</table>';
+            echo '<div style="padding: 15px; background: #f8f9fa; border-top: 1px solid #eee; text-align: center;">';
+            echo '<small style="color: #666;">👨‍💻 <strong>Geliştirici:</strong> BERAT K - WhatsApp: <a href="https://wa.me/905395115632" style="color: #25d366; text-decoration: none;">0539 511 56 32</a></small>';
+            echo '</div>';
+            echo '</div>';
         }
     }
     
@@ -970,31 +1023,35 @@ class AutoLicenseDelivery {
         
         if (!empty($licenses)) {
             if ($plain_text) {
-                echo "\nLICENSE KEYS:\n";
-                echo str_repeat('-', 30) . "\n";
+                echo "\n🔑 LİSANS ANAHTARLARI:\n";
+                echo str_repeat('-', 40) . "\n";
                 foreach ($licenses as $license) {
                     echo $license->product_name . ': ' . $license->license_key . "\n";
                 }
+                echo "\n👨‍💻 Geliştirici: BERAT K - WhatsApp: 0539 511 56 32\n";
             } else {
-                echo '<h3>License Keys</h3>';
-                echo '<table style="width: 100%; border-collapse: collapse;">';
-                echo '<thead>';
+                echo '<h3 style="color: #333; margin: 30px 0 20px 0;">🔑 Lisans Anahtarlarınız</h3>';
+                echo '<table style="width: 100%; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">';
+                echo '<thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">';
                 echo '<tr>';
-                echo '<th style="text-align:left; padding: 12px; border: 1px solid #eee;">Product</th>';
-                echo '<th style="text-align:left; padding: 12px; border: 1px solid #eee;">License Key</th>';
+                echo '<th style="color: white; text-align:left; padding: 15px; border: none;">Ürün</th>';
+                echo '<th style="color: white; text-align:left; padding: 15px; border: none;">Lisans Anahtarı</th>';
                 echo '</tr>';
                 echo '</thead>';
-                echo '<tbody>';
+                echo '<tbody style="background: white;">';
                 
                 foreach ($licenses as $license) {
-                    echo '<tr>';
-                    echo '<td style="padding: 12px; border: 1px solid #eee;">' . esc_html($license->product_name) . '</td>';
-                    echo '<td style="padding: 12px; border: 1px solid #eee;"><code>' . esc_html($license->license_key) . '</code></td>';
+                    echo '<tr style="border-bottom: 1px solid #f0f0f0;">';
+                    echo '<td style="padding: 15px; border: none;"><strong>' . esc_html($license->product_name) . '</strong></td>';
+                    echo '<td style="padding: 15px; border: none;"><code style="background: #333; color: white; padding: 8px 12px; border-radius: 4px; font-family: monospace;">' . esc_html($license->license_key) . '</code></td>';
                     echo '</tr>';
                 }
                 
                 echo '</tbody>';
                 echo '</table>';
+                echo '<div style="margin-top: 20px; padding: 15px; background: #f0f8ff; border-radius: 8px; text-align: center;">';
+                echo '<small style="color: #666;">👨‍💻 <strong>Geliştirici:</strong> BERAT K - WhatsApp: <a href="https://wa.me/905395115632" style="color: #25d366; text-decoration: none;">0539 511 56 32</a></small>';
+                echo '</div>';
             }
         }
     }

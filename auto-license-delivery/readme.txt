@@ -1,190 +1,204 @@
-=== WooCommerce Auto License Delivery - Enhanced ===
-Contributors: wiozen
-Tags: woocommerce, license, digital, download, automation, license-keys, delivery, enhanced
+=== WooCommerce Otomatik Lisans Teslimatı - BERAT K Geliştirme ===
+Contributors: beratk
+Tags: woocommerce, lisans anahtarı, otomatik teslimat, dijital ürünler, yazılım lisanslama, berat k
 Requires at least: 5.6
 Tested up to: 6.4
 Requires PHP: 7.4
 Stable tag: 2.1.0
-License: GPLv2 or later
+License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Developer: BERAT K - WhatsApp: +90 539 511 56 32
+Support: https://wa.me/905395115632
 
-Modern, secure and elegant license key delivery system for WooCommerce. Automatically delivers license keys to customers upon order completion.
+Modern, güvenli ve şık lisans anahtarı teslim sistemi. WooCommerce siparişleri tamamlandığında otomatik olarak lisans anahtarları müşterilere gönderilir. Geliştirici: BERAT K - 0539 511 56 32
 
-== Description ==
+== Açıklama ==
 
-**WooCommerce Auto License Delivery - Enhanced** is a powerful, modern plugin that automates the delivery of license keys to your customers when they purchase digital products through WooCommerce.
+**WooCommerce Otomatik Lisans Teslimatı - BERAT K Geliştirme** dijital ürün satışı yapan işletmeler için özel olarak geliştirilmiş güçlü ve modern bir WordPress eklentisidir. WooCommerce üzerinden dijital ürün satın alan müşterilere lisans anahtarlarını otomatik olarak teslim eder.
 
-= ✨ Key Features =
+= ✨ Temel Özellikler =
 
-* **🔄 Automatic License Delivery** - License keys are automatically sent to customers when orders are completed
-* **📊 Modern Dashboard** - Beautiful, responsive admin interface with real-time statistics
-* **📈 Advanced Analytics** - Track license usage, sales performance, and inventory
-* **🎨 Elegant Design** - Modern UI with gradient colors, animations, and hover effects
-* **📱 Mobile Responsive** - Works perfectly on all devices
-* **🔒 Secure & Safe** - Built with WordPress security best practices
-* **⚡ HPOS Compatible** - Full support for WooCommerce High-Performance Order Storage
-* **📧 Beautiful Emails** - Professional HTML email templates
-* **👤 Customer Portal** - Dedicated customer area to view all license keys
-* **🎯 Real-time Stats** - Live statistics with animated counters
-* **📋 Easy Management** - Bulk license key management with copy functionality
-* **🚀 Performance Optimized** - Fast, efficient, and lightweight
+* **🔄 Otomatik Lisans Teslimatı** - Sipariş tamamlandığında lisans anahtarları otomatik olarak müşterilere gönderilir
+* **📊 Modern Dashboard** - Gerçek zamanlı istatistiklerle güzel, responsive admin arayüzü
+* **📈 Gelişmiş Analitik** - Lisans kullanımı, satış performansı ve envanter takibi
+* **🎨 Zarif Tasarım** - Gradient renkler, animasyonlar ve hover efektleri ile modern UI
+* **📱 Mobil Uyumlu** - Tüm cihazlarda mükemmel çalışır
+* **🔒 Güvenli** - WordPress güvenlik standartları ile geliştirilmiş
+* **⚡ HPOS Uyumlu** - WooCommerce Yüksek Performans Sipariş Depolama tam desteği
+* **📧 Güzel E-postalar** - Profesyonel HTML e-posta şablonları
+* **👤 Müşteri Paneli** - Müşterilerin tüm lisans anahtarlarını görüntüleyebileceği özel alan
+* **🎯 Gerçek Zamanlı İstatistikler** - Animasyonlu sayaçlar ile canlı istatistikler
+* **📋 Kolay Yönetim** - Kopyalama özelliği ile toplu lisans anahtarı yönetimi
+* **🚀 Performans Optimizasyonu** - Hızlı, verimli ve hafif
 
-= 🎯 Perfect For =
+= 🎯 Mükemmel Seçim =
 
-* Software companies selling digital products
-* WordPress theme and plugin developers
-* SaaS businesses
-* Digital agencies
-* Online course creators
-* Any business selling licensed digital products
+* Dijital ürün satan yazılım şirketleri
+* WordPress tema ve eklenti geliştiricileri
+* SaaS işletmeleri
+* Dijital ajanslar
+* Online kurs yaratıcıları
+* Lisanslı dijital ürün satan tüm işletmeler
 
-= 📊 Dashboard Features =
+= 📊 Dashboard Özellikleri =
 
-* **Live Statistics**: Real-time counters showing products, licenses, sales, and usage rates
-* **Product Management**: Easy-to-use interface for managing license keys per product
-* **Sales Tracking**: Monitor recent license sales with detailed information
-* **Bulk Operations**: Add multiple license keys at once, automatic duplicate removal
-* **Advanced Filtering**: Filter and search through all issued licenses
-* **Export Capabilities**: Export license data for reporting
+* **Canlı İstatistikler**: Ürünler, lisanslar, satışlar ve kullanım oranlarını gösteren gerçek zamanlı sayaçlar
+* **Ürün Yönetimi**: Ürün başına lisans anahtarlarını yönetmek için kullanımı kolay arayüz
+* **Satış Takibi**: Detaylı bilgilerle son lisans satışlarını izleme
+* **Toplu İşlemler**: Birden fazla lisans anahtarını aynı anda ekleme, otomatik kopya kaldırma
+* **Gelişmiş Filtreleme**: Tüm verilen lisansları filtreleme ve arama
+* **Dışa Aktarma**: Raporlama için lisans verilerini dışa aktarma
 
-= 🛡️ Security Features =
+= 🛡️ Güvenlik Özellikleri =
 
-* CSRF protection with nonces
-* SQL injection prevention
-* XSS filtering and sanitization
-* Secure IP address tracking
-* Encrypted license key storage
-* User permission checks
+* Nonce'lar ile CSRF koruması
+* SQL injection önleme
+* XSS filtreleme ve temizleme
+* Güvenli IP adresi takibi
+* Şifrelenmiş lisans anahtarı depolama
+* Kullanıcı izin kontrolü
 
-= 🎨 Modern UI Elements =
+= 🎨 Modern UI Elementleri =
 
-* Gradient backgrounds and modern color schemes
-* Smooth animations and hover effects
-* Progress bars with animated counters
-* Responsive grid layouts
-* Professional card-based design
-* Toast notifications with SweetAlert2
+* Gradient arka planlar ve modern renk şemaları
+* Yumuşak animasyonlar ve hover efektleri
+* Animasyonlu sayaçlar ile ilerleme çubukları
+* Responsive grid düzenleri
+* Profesyonel kart tabanlı tasarım
+* SweetAlert2 ile toast bildirimleri
 
-= 📧 Email System =
+= 📧 E-posta Sistemi =
 
-* Professional HTML email templates
-* Responsive email design
-* Automatic license key delivery
-* Customizable email content
-* Support for plain text and HTML formats
-* Integration with WooCommerce email system
+* Profesyonel HTML e-posta şablonları
+* Responsive e-posta tasarımı
+* Otomatik lisans anahtarı teslimatı
+* Özelleştirilebilir e-posta içeriği
+* Düz metin ve HTML formatları desteği
+* WooCommerce e-posta sistemi entegrasyonu
 
-= 👥 Customer Experience =
+= 👥 Müşteri Deneyimi =
 
-* Dedicated "My License Keys" page in customer account
-* Beautiful, card-based license display
-* One-click copy functionality
-* Order history integration
-* Mobile-optimized interface
-* Search and filter capabilities
+* Müşteri hesabında özel "Lisans Anahtarlarım" sayfası
+* Güzel, kart tabanlı lisans görüntüleme
+* Tek tıkla kopyalama işlevi
+* Sipariş geçmişi entegrasyonu
+* Mobil optimize arayüz
+* Arama ve filtreleme yetenekleri
 
-== Installation ==
+== Kurulum ==
 
-1. Upload the plugin files to the `/wp-content/plugins/auto-license-delivery` directory, or install the plugin through the WordPress plugins screen directly.
-2. Activate the plugin through the 'Plugins' screen in WordPress.
-3. Navigate to 'License Keys' in your WordPress admin menu.
-4. Enter your license key: `WİO-4142-1544-1151-4441`
-5. Go to your WooCommerce products and add license keys to the products you want to enable automatic delivery for.
-6. That's it! License keys will now be automatically delivered to customers upon order completion.
+1. Plugin dosyalarını `/wp-content/plugins/auto-license-delivery` dizinine yükleyin veya WordPress eklentiler ekranından doğrudan yükleyin.
+2. Eklenti'yi 'Eklentiler' ekranından etkinleştirin.
+3. WordPress admin menünüzde 'Lisans Anahtarları'na gidin.
+4. Lisans anahtarınızı girin: `BERAT-K-DEVELOPER-LICENSE-KEY`
+5. WooCommerce ürünlerinize gidin ve otomatik teslimat için lisans anahtarları ekleyin.
+6. İşte bu kadar! Lisans anahtarları artık sipariş tamamlandığında otomatik olarak müşterilere teslim edilecek.
 
-== Frequently Asked Questions ==
+== Sıkça Sorulan Sorular ==
 
-= How do I add license keys to my products? =
+= Ürünlerime nasıl lisans anahtarı eklerim? =
 
-1. Go to WooCommerce > Products
-2. Edit any product
-3. In the product data section, you'll find "License Keys (one per line)" field
-4. Add your license keys, one per line
-5. Save the product
+1. WooCommerce > Ürünler'e gidin
+2. Herhangi bir ürünü düzenleyin
+3. Ürün verileri bölümünde "Lisans Anahtarları (her satırda bir tane)" alanını bulacaksınız
+4. Lisans anahtarlarınızı her satıra bir tane olacak şekilde ekleyin
+5. Ürünü kaydedin
 
-= When are license keys delivered to customers? =
+= Lisans anahtarları müşterilere ne zaman teslim edilir? =
 
-License keys are automatically delivered when:
-- Order status changes to "Completed"
-- Order status changes to "Processing"
+Lisans anahtarları şu durumlarda otomatik olarak teslim edilir:
+- Sipariş durumu "Tamamlandı"ya değiştiğinde
+- Sipariş durumu "İşleniyor"a değiştiğinde
 
-= Can I manually send license keys to customers? =
+= Müşterilere manuel olarak lisans anahtarı gönderebilir miyim? =
 
-Yes! In the admin dashboard, you can manually send license keys to specific customers for any product.
+Evet! Admin dashboard'da herhangi bir ürün için belirli müşterilere manuel olarak lisans anahtarı gönderebilirsiniz.
 
-= How do customers view their license keys? =
+= Müşteriler lisans anahtarlarını nasıl görüntüler? =
 
-Customers can view their license keys in:
-1. Their "My Account" page under "My License Keys"
-2. Order details page
-3. Email notifications
-4. Order completion emails
+Müşteriler lisans anahtarlarını şuralarda görüntüleyebilir:
+1. "Hesabım" sayfasında "Lisans Anahtarlarım" bölümünde
+2. Sipariş detayları sayfasında
+3. E-posta bildirimlerinde
+4. Sipariş tamamlama e-postalarında
 
-= Is the plugin compatible with HPOS? =
+= Eklenti HPOS ile uyumlu mu? =
 
-Yes! The plugin is fully compatible with WooCommerce's High-Performance Order Storage (HPOS) system.
+Evet! Eklenti WooCommerce'in Yüksek Performans Sipariş Depolama (HPOS) sistemi ile tamamen uyumludur.
 
-= Can I customize the email templates? =
+= E-posta şablonlarını özelleştirebilir miyim? =
 
-The plugin includes beautiful, professional email templates. Advanced customization options will be available in future versions.
+Eklenti güzel, profesyonel e-posta şablonları içerir. Gelişmiş özelleştirme seçenekleri gelecek sürümlerde sunulacak.
 
-= What happens if I run out of license keys? =
+= Lisans anahtarlarım biterse ne olur? =
 
-The plugin will show warnings in the admin dashboard when license keys are running low. You can easily add more keys at any time.
+Lisans anahtarları azaldığında eklenti admin dashboard'da uyarılar gösterecek. İstediğiniz zaman kolayca daha fazla anahtar ekleyebilirsiniz.
 
-= Is the plugin secure? =
+= Eklenti güvenli mi? =
 
-Yes! The plugin is built with WordPress security best practices including CSRF protection, SQL injection prevention, and XSS filtering.
+Evet! Eklenti CSRF koruması, SQL injection önleme ve XSS filtreleme dahil WordPress güvenlik standartları ile geliştirilmiştir.
 
-== Screenshots ==
+== Ekran Görüntüleri ==
 
-1. Modern admin dashboard with live statistics
-2. License key management interface with real-time stats
-3. Customer license keys page with elegant design
-4. Product edit page with license key fields
-5. Beautiful email template for license delivery
-6. All licenses overview with pagination
-7. Mobile-responsive customer interface
+1. Canlı istatistikler ile modern admin dashboard
+2. Gerçek zamanlı istatistikler ile lisans anahtarı yönetim arayüzü
+3. Zarif tasarım ile müşteri lisans anahtarları sayfası
+4. Lisans anahtarı alanları ile ürün düzenleme sayfası
+5. Lisans teslimatı için güzel e-posta şablonu
+6. Sayfalama ile tüm lisanslar genel bakış
+7. Mobil responsive müşteri arayüzü
 
-== Changelog ==
+== Değişiklik Günlüğü ==
 
 = 2.1.0 =
-* Major UI/UX overhaul with modern design
-* Added real-time statistics dashboard
-* Implemented HPOS compatibility
-* Enhanced security features
-* Added animated counters and progress bars
-* Improved customer portal design
-* Added SweetAlert2 notifications
-* Enhanced email templates
-* Added bulk license management
-* Improved mobile responsiveness
-* Added copy-to-clipboard functionality
-* Performance optimizations
+* Modern tasarım ile büyük UI/UX yenilemesi
+* Gerçek zamanlı istatistik dashboard'u eklendi
+* HPOS uyumluluğu sağlandı
+* Gelişmiş güvenlik özellikleri
+* Animasyonlu sayaçlar ve ilerleme çubukları eklendi
+* Müşteri portalı tasarımı iyileştirildi
+* SweetAlert2 bildirimleri eklendi
+* E-posta şablonları geliştirildi
+* Toplu lisans yönetimi eklendi
+* Mobil responsive iyileştirildi
+* Panoya kopyalama işlevi eklendi
+* Performans optimizasyonları
+* Geliştirici: BERAT K - WhatsApp: +90 539 511 56 32
 
 = 2.0.0 =
-* Complete rewrite with modern architecture
-* Added admin dashboard
-* Improved security
-* Better WooCommerce integration
-* Enhanced customer experience
+* Modern mimari ile tamamen yeniden yazıldı
+* Admin dashboard eklendi
+* Güvenlik iyileştirildi
+* Daha iyi WooCommerce entegrasyonu
+* Gelişmiş müşteri deneyimi
 
 = 1.0.0 =
-* Initial release
+* İlk sürüm
 
-== Upgrade Notice ==
+== Yükseltme Bildirimi ==
 
 = 2.1.0 =
-Major update with modern UI, enhanced security, and HPOS compatibility. Recommended for all users.
+Modern UI, gelişmiş güvenlik ve HPOS uyumluluğu ile büyük güncelleme. Tüm kullanıcılar için önerilir.
 
-== License ==
+== Lisans ==
 
-This plugin is licensed under the GPLv2 or later.
+Bu eklenti GPLv2 veya sonraki sürümler altında lisanslanmıştır.
 
-== Support ==
+== Destek ==
 
-For support, please visit our website or contact us directly. We provide comprehensive documentation and responsive customer support.
+Destek için lütfen BERAT K ile iletişime geçin:
+* WhatsApp: +90 539 511 56 32
+* Link: https://wa.me/905395115632
 
-== Privacy Policy ==
+Kapsamlı dokümantasyon ve hızlı müşteri desteği sağlıyoruz.
 
-This plugin stores license keys and delivery information in your WordPress database. No data is sent to external servers. Customer information is handled according to WordPress and WooCommerce privacy standards.
+== Gizlilik Politikası ==
+
+Bu eklenti lisans anahtarlarını ve teslimat bilgilerini WordPress veritabanınızda saklar. Hiçbir veri harici sunuculara gönderilmez. Müşteri bilgileri WordPress ve WooCommerce gizlilik standartlarına göre işlenir.
+
+== Geliştirici ==
+
+**BERAT K** - Profesyonel WordPress Eklenti Geliştirici
+* WhatsApp: +90 539 511 56 32
+* Destek: https://wa.me/905395115632
+* Özel yazılım çözümleri için iletişime geçin
