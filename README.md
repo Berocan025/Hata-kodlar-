@@ -1,0 +1,2 @@
+# Hata-kodlar-
+Deneme
