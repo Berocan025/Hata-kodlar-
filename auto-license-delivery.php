@@ -1,807 +1,818 @@
 <?php
 /**
- * Plugin Name: WooCommerce için Otomatik Lisans Teslimatı
- * Plugin URI: 
- * Description: WooCommerce için otomatik lisans anahtarı teslimat eklentisi
- * Version: 1.0.0
- * Author: Wiozen
- * Author URI: www.wiozen.com
- * Text Domain: otomatik-lisans-teslimati
+ * Plugin Name: WooCommerce Otomatik Lisans Teslimatı - BERAT K V3
+ * Plugin URI: https://wa.me/905395115632
+ * Description: WooCommerce için otomatik lisans anahtarı teslimat eklentisi. V3: Lisans bitince 24 saat bekleme mesajı özelliği eklendi. Geliştirici: BERAT K - 0539 511 56 32
+ * Version: 3.0.0
+ * Author: BERAT K - 0539 511 56 32
+ * Author URI: https://wa.me/905395115632
+ * Text Domain: auto-license-delivery
  * Domain Path: /languages
- * Requires at least: 5.0
- * Requires PHP: 7.2
- * WC requires at least: 3.0
- * WC tested up to: 8.0
+ * Requires at least: 5.6
+ * Tested up to: 6.4
+ * Requires PHP: 7.4
+ * WC requires at least: 6.0
+ * WC tested up to: 8.4
+ * License: GPL v2 or later
+ * Network: false
+ * Developer: BERAT K - WhatsApp: +90 539 511 56 32
+ * Support: https://wa.me/905395115632
  */
 
+// Güvenlik kontrolü
 if (!defined('ABSPATH')) {
-    exit;
+    exit('Direct access forbidden.');
 }
 
-// Sabit lisans anahtarı (şifrelenmiş)
+// Plugin sabitleri
+define('ALD_VERSION', '3.0.0');
+define('ALD_PLUGIN_FILE', __FILE__);
+define('ALD_PLUGIN_DIR', plugin_dir_path(__FILE__));
+define('ALD_PLUGIN_URL', plugin_dir_url(__FILE__));
+define('ALD_PLUGIN_BASENAME', plugin_basename(__FILE__));
 define('ALD_LICENSE_KEY', base64_encode('WİO-4142-1544-1151-4441'));
 
-// Telegram Bot Token ve Chat ID
-define('ALD_TELEGRAM_BOT_TOKEN', '');
-define('ALD_TELEGRAM_CHAT_ID', '');
-
-// Lisans kontrolü
-function ald_check_license() {
-    $license_key = get_option('ald_license_key');
-    if (!$license_key) {
-        add_action('admin_notices', 'ald_license_notice');
-        return false;
-    }
-    return true;
-}
-
-// Lisans aktivasyon bildirimi
-function ald_license_notice() {
-    ?>
-    <div class="notice notice-warning is-dismissible">
-        <div style="text-align: center; padding: 20px;">
-            <h2><?php _e('Auto License Delivery Eklentisi Lisans Aktivasyonu', 'auto-license-delivery'); ?></h2>
-            <p><?php _e('Eklentiyi kullanabilmek için lütfen lisans anahtarınızı girin.', 'auto-license-delivery'); ?></p>
-            <form method="post" action="" style="max-width: 400px; margin: 20px auto;">
-                <?php wp_nonce_field('ald_activate_license'); ?>
-                <input type="text" name="ald_license_key" placeholder="<?php _e('Lisans Anahtarını Girin', 'auto-license-delivery'); ?>" required style="width: 100%; padding: 10px; margin-bottom: 10px;">
-                <input type="submit" name="ald_activate_license" class="button button-primary" value="<?php _e('Aktifleştir', 'auto-license-delivery'); ?>" style="width: 100%;">
-            </form>
-        </div>
-    </div>
-    <?php
-}
-
-// Lisans aktivasyonu
-function ald_activate_license() {
-    if (isset($_POST['ald_activate_license'])) {
-        check_admin_referer('ald_activate_license');
-        
-        $license_key = sanitize_text_field($_POST['ald_license_key']);
-        
-        if (base64_encode($license_key) === ALD_LICENSE_KEY) {
-            // Lisans anahtarını şifreleyerek kaydet
-            $encrypted_key = ald_encrypt_license_key($license_key);
-            update_option('ald_license_key', $encrypted_key);
-            
-            // Telegram bildirimi gönder
-            $site_url = esc_url(get_site_url());
-            $message = "🔔 Yeni Eklenti Aktivasyonu!\n\n";
-            $message .= "Site: {$site_url}\n";
-            $message .= "Eklenti: Auto License Delivery\n";
-            $message .= "Tarih: " . current_time('mysql');
-            
-            wp_remote_post('https://api.telegram.org/bot' . ALD_TELEGRAM_BOT_TOKEN . '/sendMessage', array(
-                'body' => array(
-                    'chat_id' => ALD_TELEGRAM_CHAT_ID,
-                    'text' => $message,
-                    'parse_mode' => 'HTML'
-                ),
-                'timeout' => 15,
-                'sslverify' => true
-            ));
-            
-            echo '<div class="notice notice-success"><p>' . esc_html__('Lisans başarıyla aktifleştirildi!', 'auto-license-delivery') . '</p></div>';
-        } else {
-            echo '<div class="notice notice-error"><p>' . esc_html__('Geçersiz lisans anahtarı!', 'auto-license-delivery') . '</p></div>';
-        }
-    }
-}
-add_action('admin_init', 'ald_activate_license');
-
-// Güvenlik kontrolleri
-function ald_security_checks() {
-    // AJAX isteklerini kontrol et
-    if (defined('DOING_AJAX') && DOING_AJAX) {
-        // Nonce kontrolü sadece belirli AJAX işlemleri için yapılacak
-        $allowed_actions = array('ald_get_license_keys', 'ald_save_license_keys', 'ald_send_customer_license');
-        if (isset($_POST['action']) && in_array($_POST['action'], $allowed_actions)) {
-            if (!check_ajax_referer('ald_nonce', 'nonce', false)) {
-                wp_send_json_error('Invalid nonce');
-            }
-        }
-    }
-
-    // Admin yetkisi kontrolü
-    if (!current_user_can('manage_options')) {
-        wp_die(__('Bu sayfaya erişim yetkiniz bulunmamaktadır.', 'auto-license-delivery'));
-    }
-}
-add_action('admin_init', 'ald_security_checks');
-
-// Admin paneli için stil ekle
-function ald_admin_styles() {
-    // Sadece eklenti sayfasında stil uygula
-    if (!isset($_GET['page']) || $_GET['page'] !== 'auto-license-delivery') {
-        return;
-    }
-
-    wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+/**
+ * Ana Plugin Sınıfı
+ */
+class AutoLicenseDelivery_V3 {
     
-    // Özel CSS'i güvenli bir şekilde ekle
-    $custom_css = get_option('ald_custom_css', '');
-    if (!empty($custom_css)) {
-        wp_add_inline_style('google-fonts', wp_strip_all_tags($custom_css));
+    private static $instance = null;
+    
+    public static function get_instance() {
+        if (null === self::$instance) {
+            self::$instance = new self();
+        }
+        return self::$instance;
     }
     
-    ?>
-    <style>
-        .wrap {
-            font-family: 'Poppins', sans-serif;
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 0 20px;
-        }
-        .card {
-            background: #fff;
-            border: 1px solid #ccd0d4;
-            box-shadow: 0 1px 1px rgba(0,0,0,.04);
-            margin-bottom: 20px;
-            min-width: 100% !important;
-            padding: 20px;
-            border-radius: 4px;
-        }
-        .card h2 {
-            margin-top: 0;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
-        }
-        .form-table th {
-            width: 200px;
-        }
-        .wp-list-table {
-            margin-top: 20px;
-        }
-        @media screen and (max-width: 782px) {
-            .wrap {
-                padding: 0 10px;
-            }
-            .form-table th {
-                width: auto;
-                display: block;
-                padding-bottom: 0;
-            }
-            .form-table td {
-                display: block;
-                padding-top: 0;
-            }
-        }
-    </style>
-    <?php
-}
-add_action('admin_head', 'ald_admin_styles');
-
-// Özel CSS kaydetme işlemi
-function ald_save_custom_css() {
-    if (isset($_POST['ald_save_custom_css']) && check_admin_referer('ald_save_custom_css')) {
-        $custom_css = isset($_POST['custom_css']) ? sanitize_textarea_field($_POST['custom_css']) : '';
-        update_option('ald_custom_css', $custom_css);
-        echo '<div class="notice notice-success"><p>' . esc_html__('Özel CSS başarıyla kaydedildi!', 'auto-license-delivery') . '</p></div>';
-    }
-}
-add_action('admin_init', 'ald_save_custom_css');
-
-// Admin sayfasına özel CSS alanı ekle
-function ald_add_custom_css_field() {
-    ?>
-    <div class="card">
-        <h2><?php _e('Özel CSS', 'auto-license-delivery'); ?></h2>
-        <form method="post" action="">
-            <?php wp_nonce_field('ald_save_custom_css'); ?>
-            <table class="form-table">
-                <tr>
-                    <th scope="row">
-                        <label for="custom_css"><?php _e('CSS Kodları', 'auto-license-delivery'); ?></label>
-                    </th>
-                    <td>
-                        <textarea name="custom_css" id="custom_css" rows="10" class="large-text code"><?php echo esc_textarea(get_option('ald_custom_css', '')); ?></textarea>
-                        <p class="description"><?php _e('Özel CSS kodlarınızı buraya ekleyebilirsiniz.', 'auto-license-delivery'); ?></p>
-                    </td>
-                </tr>
-            </table>
-            <p class="submit">
-                <input type="submit" name="ald_save_custom_css" class="button button-primary" value="<?php _e('Kaydet', 'auto-license-delivery'); ?>">
-            </p>
-        </form>
-    </div>
-    <?php
-}
-
-// XSS koruması için çıktı temizleme
-function ald_sanitize_output($output) {
-    return wp_kses_post($output);
-}
-
-// Lisans anahtarını şifrele
-function ald_encrypt_license_key($key) {
-    return wp_hash($key);
-}
-
-// Lisans anahtarını doğrula
-function ald_verify_license_key($key) {
-    $stored_key = get_option('ald_license_key');
-    return wp_verify_nonce($key, $stored_key);
-}
-
-// WooCommerce aktif mi kontrol et
-function ald_check_woocommerce() {
-    if (!class_exists('WooCommerce')) {
-        add_action('admin_notices', 'ald_woocommerce_missing_notice');
-        return false;
-    }
-    return true;
-}
-
-function ald_woocommerce_missing_notice() {
-    ?>
-    <div class="error">
-        <p><?php _e('Auto License Delivery eklentisi için WooCommerce yüklü ve aktif olmalıdır.', 'auto-license-delivery'); ?></p>
-    </div>
-    <?php
-}
-
-// Veri temizleme işlemleri
-function ald_handle_data_cleanup() {
-    if (isset($_POST['ald_cleanup_all']) && check_admin_referer('ald_cleanup_all')) {
-        global $wpdb;
-        
-        // Tüm lisans anahtarlarını temizle
-        $wpdb->query("DELETE FROM {$wpdb->postmeta} WHERE meta_key = '_license_keys'");
-        $wpdb->query("DELETE FROM {$wpdb->postmeta} WHERE meta_key = '_sent_license_keys'");
-        
-        // Lisans anahtarı seçeneğini temizle
-        delete_option('ald_license_key');
-        
-        echo '<div class="notice notice-success"><p>' . esc_html__('Tüm veriler başarıyla temizlendi!', 'auto-license-delivery') . '</p></div>';
+    private function __construct() {
+        add_action('plugins_loaded', array($this, 'init'));
+        register_activation_hook(__FILE__, array($this, 'activate'));
+        register_deactivation_hook(__FILE__, array($this, 'deactivate'));
+        add_action('init', array($this, 'load_textdomain'));
     }
     
-    if (isset($_POST['ald_cleanup_selected']) && check_admin_referer('ald_cleanup_selected')) {
-        if (isset($_POST['selected_products']) && is_array($_POST['selected_products'])) {
-            foreach ($_POST['selected_products'] as $product_id) {
-                delete_post_meta($product_id, '_license_keys');
-                delete_post_meta($product_id, '_sent_license_keys');
-            }
-            echo '<div class="notice notice-success"><p>' . esc_html__('Seçili ürünlerin verileri başarıyla temizlendi!', 'auto-license-delivery') . '</p></div>';
+    public function init() {
+        if (!$this->check_requirements()) {
+            return;
         }
-    }
-}
-add_action('admin_init', 'ald_handle_data_cleanup');
-
-// Eklenti başlatma
-function ald_init() {
-    if (!ald_check_woocommerce()) {
-        return;
-    }
-
-    if (!ald_check_license()) {
-        return;
-    }
-
-    // Admin menüsü ekle
-    add_action('admin_menu', 'ald_add_admin_menu');
-    
-    // Lisans anahtarı meta alanını ekle
-    add_action('woocommerce_product_options_general_product_data', 'ald_add_license_key_field');
-    add_action('woocommerce_process_product_meta', 'ald_save_license_key_field');
-
-    // Sipariş tamamlandığında lisans anahtarını gönder
-    add_action('woocommerce_order_status_completed', 'ald_deliver_license_key');
-
-    // Siparişlerim sayfasına lisans anahtarlarını ekle
-    add_action('woocommerce_order_details_after_order_table', 'ald_display_license_keys_in_order');
-    add_action('woocommerce_my_account_my_orders_column_order-total', 'ald_display_license_keys_in_orders_list');
-
-    // Admin panelinde gönderilen lisans anahtarlarını göster
-    add_action('woocommerce_product_data_tabs', 'ald_add_license_keys_tab');
-    add_action('woocommerce_product_data_panels', 'ald_add_license_keys_panel');
-
-    // Müşteri paneli menüsüne lisans anahtarları ekle
-    add_filter('woocommerce_account_menu_items', 'ald_add_my_account_menu_item');
-}
-add_action('plugins_loaded', 'ald_init');
-
-// HPOS uyumluluğu için
-add_action('before_woocommerce_init', function() {
-    if (class_exists('\Automattic\WooCommerce\Utilities\FeaturesUtil')) {
-        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('custom_order_tables', __FILE__, true);
-        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('order_cache', __FILE__, true);
-    }
-});
-
-// Admin menüsü ekle
-function ald_add_admin_menu() {
-    add_menu_page(
-        __('Lisans Anahtarları', 'auto-license-delivery'),
-        __('Lisans Anahtarları', 'auto-license-delivery'),
-        'manage_options',
-        'auto-license-delivery',
-        'ald_admin_page',
-        'dashicons-lock',
-        56
-    );
-}
-
-// Admin sayfası içeriği
-function ald_admin_page() {
-    ald_handle_data_cleanup();
-    
-    // Ürünleri getir
-    $products = wc_get_products(array(
-        'limit' => -1,
-        'status' => 'publish',
-        'type' => array('simple', 'variable')
-    ));
-
-    // Müşterileri getir
-    $customers = get_users(array('role' => 'customer'));
-    ?>
-    <div class="wrap">
-        <h1><?php _e('Lisans Anahtarları Yönetimi', 'auto-license-delivery'); ?></h1>
         
-        <div class="card">
-            <h2><?php _e('Veri Temizleme', 'auto-license-delivery'); ?></h2>
-            <form method="post" action="" style="margin-bottom: 20px;">
-                <?php wp_nonce_field('ald_cleanup_all'); ?>
-                <p class="submit">
-                    <input type="submit" name="ald_cleanup_all" class="button button-secondary" value="<?php _e('Tüm Verileri Sıfırla', 'auto-license-delivery'); ?>" onclick="return confirm('<?php _e('Bu işlem tüm lisans anahtarlarını ve gönderim kayıtlarını silecektir. Devam etmek istediğinize emin misiniz?', 'auto-license-delivery'); ?>');">
-                </p>
-            </form>
-            
-            <form method="post" action="">
-                <?php wp_nonce_field('ald_cleanup_selected'); ?>
-                <table class="form-table">
-                    <tr>
-                        <th scope="row">
-                            <label><?php _e('Seçili Ürünleri Temizle', 'auto-license-delivery'); ?></label>
-                        </th>
-                        <td>
-                            <select name="selected_products[]" multiple style="width: 100%; height: 150px;">
-                                <?php foreach ($products as $product) : ?>
-                                    <option value="<?php echo $product->get_id(); ?>"><?php echo $product->get_name(); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                            <p class="description"><?php _e('Seçili ürünlerin lisans anahtarlarını ve gönderim kayıtlarını temizler.', 'auto-license-delivery'); ?></p>
-                        </td>
-                    </tr>
-                </table>
-                <p class="submit">
-                    <input type="submit" name="ald_cleanup_selected" class="button button-secondary" value="<?php _e('Seçili Ürünleri Temizle', 'auto-license-delivery'); ?>" onclick="return confirm('<?php _e('Seçili ürünlerin lisans anahtarları ve gönderim kayıtları silinecektir. Devam etmek istediğinize emin misiniz?', 'auto-license-delivery'); ?>');">
-                </p>
-            </form>
-        </div>
-
-        <div class="card">
-            <h2><?php _e('Lisans Anahtarı Ekle', 'auto-license-delivery'); ?></h2>
-            <form method="post" action="">
-                <?php wp_nonce_field('ald_save_license_keys'); ?>
-                <table class="form-table">
-                    <tr>
-                        <th scope="row">
-                            <label for="product_id"><?php _e('Ürün Seçin', 'auto-license-delivery'); ?></label>
-                        </th>
-                        <td>
-                            <select name="product_id" id="product_id" required>
-                                <option value=""><?php _e('Ürün seçin...', 'auto-license-delivery'); ?></option>
-                                <?php foreach ($products as $product) : ?>
-                                    <option value="<?php echo $product->get_id(); ?>"><?php echo $product->get_name(); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">
-                            <label for="license_keys"><?php _e('Lisans Anahtarları', 'auto-license-delivery'); ?></label>
-                        </th>
-                        <td>
-                            <textarea name="license_keys" id="license_keys" rows="10" class="large-text" placeholder="<?php _e('Her satıra bir lisans anahtarı yazın', 'auto-license-delivery'); ?>"></textarea>
-                            <p class="description"><?php _e('Her satıra bir lisans anahtarı yazın. Satın alındığında otomatik olarak müşteriye gönderilecektir.', 'auto-license-delivery'); ?></p>
-                        </td>
-                    </tr>
-                </table>
-                <p class="submit">
-                    <input type="submit" name="ald_save_license_keys" class="button button-primary" value="<?php _e('Kaydet', 'auto-license-delivery'); ?>">
-                </p>
-            </form>
-        </div>
-
-        <div class="card">
-            <h2><?php _e('Müşteriye Özel Lisans Gönder', 'auto-license-delivery'); ?></h2>
-            <form method="post" action="">
-                <?php wp_nonce_field('ald_send_customer_license'); ?>
-                <table class="form-table">
-                    <tr>
-                        <th scope="row">
-                            <label for="customer_id"><?php _e('Müşteri Seçin', 'auto-license-delivery'); ?></label>
-                        </th>
-                        <td>
-                            <select name="customer_id" id="customer_id" required>
-                                <option value=""><?php _e('Müşteri seçin...', 'auto-license-delivery'); ?></option>
-                                <?php foreach ($customers as $customer) : ?>
-                                    <option value="<?php echo $customer->ID; ?>"><?php echo $customer->display_name . ' (' . $customer->user_email . ')'; ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">
-                            <label for="customer_product_id"><?php _e('Ürün Seçin', 'auto-license-delivery'); ?></label>
-                        </th>
-                        <td>
-                            <select name="customer_product_id" id="customer_product_id" required>
-                                <option value=""><?php _e('Ürün seçin...', 'auto-license-delivery'); ?></option>
-                                <?php foreach ($products as $product) : ?>
-                                    <option value="<?php echo $product->get_id(); ?>"><?php echo $product->get_name(); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">
-                            <label for="customer_license_key"><?php _e('Lisans Anahtarı', 'auto-license-delivery'); ?></label>
-                        </th>
-                        <td>
-                            <input type="text" name="customer_license_key" id="customer_license_key" class="regular-text" required>
-                        </td>
-                    </tr>
-                </table>
-                <p class="submit">
-                    <input type="submit" name="ald_send_customer_license" class="button button-primary" value="<?php _e('Gönder', 'auto-license-delivery'); ?>">
-                </p>
-            </form>
-        </div>
-
-        <div class="card">
-            <h2><?php _e('Gönderilen Lisans Anahtarları', 'auto-license-delivery'); ?></h2>
-            <form method="get" action="">
-                <input type="hidden" name="page" value="auto-license-delivery">
-                <table class="form-table">
-                    <tr>
-                        <th scope="row">
-                            <label for="filter_product"><?php _e('Ürün Filtrele', 'auto-license-delivery'); ?></label>
-                        </th>
-                        <td>
-                            <select name="filter_product" id="filter_product">
-                                <option value=""><?php _e('Tüm Ürünler', 'auto-license-delivery'); ?></option>
-                                <?php foreach ($products as $product) : ?>
-                                    <option value="<?php echo $product->get_id(); ?>" <?php selected(isset($_GET['filter_product']) ? $_GET['filter_product'] : '', $product->get_id()); ?>>
-                                        <?php echo $product->get_name(); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <input type="submit" class="button" value="<?php _e('Filtrele', 'auto-license-delivery'); ?>">
-                        </td>
-                    </tr>
-                </table>
-            </form>
-            <table class="wp-list-table widefat fixed striped">
-                <thead>
-                    <tr>
-                        <th><?php _e('Ürün', 'auto-license-delivery'); ?></th>
-                        <th><?php _e('Sipariş ID', 'auto-license-delivery'); ?></th>
-                        <th><?php _e('Müşteri', 'auto-license-delivery'); ?></th>
-                        <th><?php _e('Lisans Anahtarı', 'auto-license-delivery'); ?></th>
-                        <th><?php _e('Tarih', 'auto-license-delivery'); ?></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    $filter_product = isset($_GET['filter_product']) ? intval($_GET['filter_product']) : 0;
-                    foreach ($products as $product) {
-                        if ($filter_product && $filter_product != $product->get_id()) {
-                            continue;
-                        }
-                        
-                        $sent_keys = get_post_meta($product->get_id(), '_sent_license_keys', true);
-                        if (!empty($sent_keys) && is_array($sent_keys)) {
-                            foreach ($sent_keys as $sent_key) {
-                                $customer = isset($sent_key['customer_id']) ? get_user_by('id', $sent_key['customer_id']) : null;
-                                echo '<tr>';
-                                echo '<td>' . $product->get_name() . '</td>';
-                                echo '<td>' . $sent_key['order_id'] . '</td>';
-                                echo '<td>' . ($customer ? $customer->display_name . ' (' . $customer->user_email . ')' : '-') . '</td>';
-                                echo '<td><code>' . esc_html($sent_key['key']) . '</code></td>';
-                                echo '<td>' . $sent_key['date'] . '</td>';
-                                echo '</tr>';
-                            }
-                        }
-                    }
-                    ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <script>
-    jQuery(document).ready(function($) {
-        $('#product_id').change(function() {
-            var productId = $(this).val();
-            if (productId) {
-                $.ajax({
-                    url: ajaxurl,
-                    type: 'POST',
-                    data: {
-                        action: 'ald_get_product_license_keys',
-                        product_id: productId,
-                        nonce: '<?php echo wp_create_nonce('ald_get_license_keys'); ?>'
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            $('#license_keys').val(response.data);
-                        }
-                    }
-                });
+        $this->declare_hpos_compatibility();
+        $this->init_hooks();
+    }
+    
+    public function load_textdomain() {
+        load_plugin_textdomain('auto-license-delivery', false, dirname(plugin_basename(__FILE__)) . '/languages');
+    }
+    
+    private function check_requirements() {
+        if (version_compare(PHP_VERSION, '7.4', '<')) {
+            add_action('admin_notices', array($this, 'php_version_notice'));
+            return false;
+        }
+        
+        if (!class_exists('WooCommerce')) {
+            add_action('admin_notices', array($this, 'woocommerce_missing_notice'));
+            return false;
+        }
+        
+        return true;
+    }
+    
+    private function declare_hpos_compatibility() {
+        add_action('before_woocommerce_init', function() {
+            if (class_exists('\Automattic\WooCommerce\Utilities\FeaturesUtil')) {
+                \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('custom_order_tables', __FILE__, true);
+                \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('cart_checkout_blocks', __FILE__, true);
             }
         });
-    });
-    </script>
-    <?php
-}
-
-// AJAX ile ürün lisans anahtarlarını getir
-add_action('wp_ajax_ald_get_product_license_keys', 'ald_get_product_license_keys');
-function ald_get_product_license_keys() {
-    check_ajax_referer('ald_get_license_keys', 'nonce');
+    }
     
-    $product_id = intval($_POST['product_id']);
-    $license_keys = get_post_meta($product_id, '_license_keys', true);
+    private function init_hooks() {
+        if (is_admin()) {
+            add_action('admin_menu', array($this, 'add_admin_menu'));
+            add_action('admin_enqueue_scripts', array($this, 'admin_scripts'));
+            add_action('admin_init', array($this, 'handle_license_activation'));
+            add_action('admin_init', array($this, 'handle_admin_actions'));
+            add_filter('plugin_action_links_' . plugin_basename(__FILE__), array($this, 'plugin_action_links'));
+        }
+        
+        add_action('woocommerce_product_options_general_product_data', array($this, 'add_license_field'));
+        add_action('woocommerce_process_product_meta', array($this, 'save_license_field'));
+        add_action('woocommerce_order_status_completed', array($this, 'deliver_license'));
+        add_action('woocommerce_order_status_processing', array($this, 'deliver_license'));
+        
+        add_filter('woocommerce_account_menu_items', array($this, 'add_account_menu_item'));
+        add_action('init', array($this, 'add_account_endpoints'));
+        add_action('woocommerce_account_license-keys_endpoint', array($this, 'license_keys_content'));
+        
+        add_action('woocommerce_order_details_after_order_table', array($this, 'display_order_licenses'));
+        add_action('woocommerce_email_order_meta', array($this, 'add_license_to_email'), 10, 3);
+        
+        // V3 Feature: 24 saat bekleme mesajı
+        add_action('woocommerce_order_details_after_order_table', array($this, 'display_pending_license_message'), 15);
+    }
     
-    wp_send_json_success($license_keys);
-}
-
-// Ürün sayfasına lisans anahtarı alanı ekle
-function ald_add_license_key_field() {
-    global $woocommerce, $post;
+    public function activate() {
+        $this->create_tables();
+        flush_rewrite_rules();
+        update_option('ald_version', ALD_VERSION);
+        update_option('ald_activation_time', current_time('mysql'));
+    }
     
-    echo '<div class="options_group">';
+    public function deactivate() {
+        flush_rewrite_rules();
+    }
     
-    woocommerce_wp_textarea_input(
-        array(
-            'id'          => '_license_keys',
-            'label'       => __('Lisans Anahtarları', 'auto-license-delivery'),
-            'placeholder' => __('Her satıra bir lisans anahtarı yazın', 'auto-license-delivery'),
-            'desc_tip'    => true,
-            'description' => __('Her satıra bir lisans anahtarı yazın. Satın alındığında otomatik olarak müşteriye gönderilecektir.', 'auto-license-delivery')
-        )
-    );
+    private function create_tables() {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'ald_license_history';
+        $charset_collate = $wpdb->get_charset_collate();
+        
+        $sql = "CREATE TABLE IF NOT EXISTS $table_name (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            order_id varchar(50) NOT NULL,
+            product_id bigint(20) NOT NULL,
+            customer_id bigint(20) NOT NULL,
+            customer_email varchar(255) NOT NULL,
+            license_key varchar(255) DEFAULT '',
+            status varchar(20) DEFAULT 'sent',
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY order_id (order_id),
+            KEY product_id (product_id),
+            KEY customer_id (customer_id)
+        ) $charset_collate;";
+        
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql);
+        
+        // V3: Pending customers tablosu
+        $pending_table = $wpdb->prefix . 'ald_pending_customers';
+        $pending_sql = "CREATE TABLE IF NOT EXISTS $pending_table (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            order_id varchar(50) NOT NULL,
+            product_id bigint(20) NOT NULL,
+            customer_id bigint(20) NOT NULL,
+            customer_email varchar(255) NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            processed_at datetime DEFAULT NULL,
+            status varchar(20) DEFAULT 'pending',
+            PRIMARY KEY (id),
+            UNIQUE KEY unique_order_product (order_id, product_id),
+            KEY customer_id (customer_id)
+        ) $charset_collate;";
+        
+        dbDelta($pending_sql);
+    }
     
-    echo '</div>';
-}
-
-// Lisans anahtarları sekmesi ekle
-function ald_add_license_keys_tab($tabs) {
-    $tabs['license_keys'] = array(
-        'label'    => __('Lisans Anahtarları', 'auto-license-delivery'),
-        'target'   => 'license_keys_product_data',
-        'class'    => array('show_if_simple', 'show_if_variable'),
-        'priority' => 70
-    );
-    return $tabs;
-}
-
-// Lisans anahtarları paneli ekle
-function ald_add_license_keys_panel() {
-    global $post;
-    ?>
-    <div id="license_keys_product_data" class="panel woocommerce_options_panel">
+    // Notice fonksiyonları
+    public function php_version_notice() {
+        echo '<div class="error"><p>Otomatik Lisans Teslimatı PHP 7.4 veya üzeri gerektirir. Geliştirici: BERAT K - 0539 511 56 32</p></div>';
+    }
+    
+    public function woocommerce_missing_notice() {
+        echo '<div class="error"><p>Otomatik Lisans Teslimatı WooCommerce\'in yüklü ve aktif olmasını gerektirir. Destek: BERAT K</p></div>';
+    }
+    
+    public function plugin_action_links($links) {
+        $action_links = array(
+            'settings' => '<a href="' . admin_url('admin.php?page=auto-license-delivery') . '">Ayarlar</a>',
+            'developer' => '<a href="https://wa.me/905395115632" target="_blank">👨‍💻 BERAT K</a>',
+        );
+        return array_merge($action_links, $links);
+    }
+    
+    public function add_admin_menu() {
+        add_menu_page(
+            'Lisans Anahtarı Yönetimi V3',
+            'Lisans Anahtarları',
+            'manage_woocommerce',
+            'auto-license-delivery',
+            array($this, 'admin_page'),
+            'dashicons-admin-network',
+            56
+        );
+    }
+    
+    public function admin_scripts($hook) {
+        if (strpos($hook, 'auto-license-delivery') === false) {
+            return;
+        }
+        
+        wp_enqueue_script('jquery');
+        wp_add_inline_style('wp-admin', $this->get_admin_css());
+        
+        wp_localize_script('jquery', 'ald_ajax', array(
+            'url' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('ald_admin_nonce')
+        ));
+    }
+    
+    private function get_admin_css() {
+        return '
+        .ald-dashboard { background: #f8f9fa; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .ald-card { background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 30px; overflow: hidden; }
+        .ald-card-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 25px; font-size: 18px; font-weight: 600; }
+        .ald-card-body { padding: 25px; }
+        .ald-form-group { margin-bottom: 20px; }
+        .ald-form-label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
+        .ald-form-control { width: 100%; padding: 12px 16px; border: 2px solid #e1e5e9; border-radius: 8px; }
+        .ald-btn { padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        .ald-btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .ald-pending-message { background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); border: 2px solid #ffc107; border-radius: 12px; padding: 20px; margin: 20px 0; text-align: center; }
+        .ald-license-card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 15px; border-left: 4px solid #667eea; }
+        .ald-license-key-container { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 15px; margin: 10px 0; }
+        .ald-license-key-value { font-family: monospace; font-size: 14px; font-weight: bold; color: #28a745; word-break: break-all; }
+        ';
+    }
+    
+    public function handle_license_activation() {
+        if (!isset($_POST['ald_activate_license'])) {
+            return;
+        }
+        
+        if (!wp_verify_nonce($_POST['ald_nonce'], 'ald_activate_license')) {
+            return;
+        }
+        
+        $license_key = sanitize_text_field($_POST['license_key']);
+        
+        if (base64_encode($license_key) === ALD_LICENSE_KEY) {
+            update_option('ald_license_activated', true);
+            update_option('ald_license_key_hash', hash('sha256', $license_key));
+            $this->admin_notice('License activated successfully!', 'success');
+        } else {
+            $this->admin_notice('Invalid license key!', 'error');
+        }
+    }
+    
+    public function handle_admin_actions() {
+        // License keys kaydetme
+        if (isset($_POST['ald_save_license_keys']) && wp_verify_nonce($_POST['ald_nonce'], 'ald_save_license_keys')) {
+            $product_id = intval($_POST['product_id']);
+            $license_keys = sanitize_textarea_field($_POST['license_keys']);
+            
+            if ($product_id && $license_keys) {
+                $keys_array = array_filter(explode("\n", $license_keys));
+                $keys_array = array_map('trim', $keys_array);
+                $keys_array = array_unique($keys_array);
+                
+                update_post_meta($product_id, '_license_keys', $keys_array);
+                $this->admin_notice('Lisans anahtarları başarıyla kaydedildi!', 'success');
+            }
+        }
+        
+        // Manuel lisans gönderimi
+        if (isset($_POST['ald_send_customer_license']) && wp_verify_nonce($_POST['ald_nonce'], 'ald_send_customer_license')) {
+            $customer_id = intval($_POST['customer_id']);
+            $product_id = intval($_POST['customer_product_id']);
+            $license_key = sanitize_text_field($_POST['customer_license_key']);
+            
+            if ($this->send_manual_license($customer_id, $product_id, $license_key)) {
+                $this->admin_notice('Lisans anahtarı başarıyla gönderildi!', 'success');
+            } else {
+                $this->admin_notice('Lisans gönderiminde hata oluştu!', 'error');
+            }
+        }
+    }
+    
+    private function admin_notice($message, $type = 'success') {
+        add_action('admin_notices', function() use ($message, $type) {
+            echo '<div class="notice notice-' . esc_attr($type) . '"><p>' . esc_html($message) . '</p></div>';
+        });
+    }
+    
+    // V3: Manuel lisans gönder
+    private function send_manual_license($customer_id, $product_id, $license_key) {
+        global $wpdb;
+        
+        $customer = get_user_by('id', $customer_id);
+        $product = wc_get_product($product_id);
+        
+        if (!$customer || !$product) {
+            return false;
+        }
+        
+        // Pending durumunu kaldır
+        $pending_table = $wpdb->prefix . 'ald_pending_customers';
+        $wpdb->update(
+            $pending_table,
+            array('status' => 'processed', 'processed_at' => current_time('mysql')),
+            array('customer_id' => $customer_id, 'product_id' => $product_id, 'status' => 'pending'),
+            array('%s', '%s'),
+            array('%d', '%d', '%s')
+        );
+        
+        // Lisans kaydını oluştur
+        $this->save_manual_license($customer, $product_id, $license_key);
+        
+        // E-posta gönder
+        return $this->send_license_email($customer, $product, $license_key);
+    }
+    
+    private function save_manual_license($customer, $product_id, $license_key) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ald_license_history';
+        
+        return $wpdb->insert(
+            $table_name,
+            array(
+                'order_id' => 'MANUAL-' . time(),
+                'product_id' => $product_id,
+                'customer_id' => $customer->ID,
+                'customer_email' => $customer->user_email,
+                'license_key' => $license_key,
+                'status' => 'sent',
+                'created_at' => current_time('mysql')
+            ),
+            array('%s', '%d', '%d', '%s', '%s', '%s', '%s')
+        );
+    }
+    
+    private function send_license_email($customer, $product, $license_key) {
+        $subject = sprintf('[%s] Your License Key for %s', get_bloginfo('name'), $product->get_name());
+        
+        $message = sprintf('
+            <div style="background: #f8f9fa; padding: 20px; font-family: Arial, sans-serif;">
+                <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <div style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); color: white; padding: 30px 20px; text-align: center;">
+                        <h1 style="margin: 0; font-size: 28px;">🔑 License Key Ready!</h1>
+                    </div>
+                    <div style="padding: 30px 20px;">
+                        <p>Hello <strong>%s</strong>,</p>
+                        <p>Your license key for <strong>%s</strong> is ready:</p>
+                        <div style="background: #f8f9fa; border: 2px solid #28a745; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+                            <div style="font-family: monospace; font-size: 18px; font-weight: bold; color: #28a745;">%s</div>
+                        </div>
+                        <p>Best regards,<br><strong>%s</strong></p>
+                    </div>
+                </div>
+            </div>',
+            esc_html($customer->display_name),
+            esc_html($product->get_name()),
+            esc_html($license_key),
+            esc_html(get_bloginfo('name'))
+        );
+        
+        $headers = array('Content-Type: text/html; charset=UTF-8');
+        
+        return wp_mail($customer->user_email, $subject, $message, $headers);
+    }
+    
+    public function admin_page() {
+        if (!get_option('ald_license_activated')) {
+            $this->license_activation_page();
+            return;
+        }
+        
+        $this->main_admin_page();
+    }
+    
+    private function license_activation_page() {
+        ?>
+        <div class="ald-dashboard">
+            <div class="ald-card" style="max-width: 500px; margin: 0 auto;">
+                <div class="ald-card-header">
+                    🔑 License Activation Required
+                </div>
+                <div class="ald-card-body">
+                    <form method="post" action="">
+                        <?php wp_nonce_field('ald_activate_license', 'ald_nonce'); ?>
+                        <div class="ald-form-group">
+                            <label class="ald-form-label">License Key:</label>
+                            <input type="text" name="license_key" class="ald-form-control" placeholder="WİO-4142-1544-1151-4441" required>
+                        </div>
+                        <button type="submit" name="ald_activate_license" class="ald-btn ald-btn-primary" style="width: 100%;">
+                            🚀 Activate License
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
         <?php
-        // Gönderilen lisans anahtarlarını göster
-        $sent_keys = get_post_meta($post->ID, '_sent_license_keys', true);
-        if (!empty($sent_keys)) {
-            echo '<div class="options_group">';
-            echo '<h4>' . __('Gönderilen Lisans Anahtarları', 'auto-license-delivery') . '</h4>';
-            echo '<table class="widefat">';
-            echo '<thead><tr><th>' . __('Sipariş ID', 'auto-license-delivery') . '</th><th>' . __('Lisans Anahtarı', 'auto-license-delivery') . '</th><th>' . __('Tarih', 'auto-license-delivery') . '</th></tr></thead>';
+    }
+    
+    private function main_admin_page() {
+        $products = wc_get_products(array('limit' => -1, 'status' => 'publish'));
+        $customers = get_users(array('role' => 'customer'));
+        
+        ?>
+        <div class="ald-dashboard">
+            <h1 style="margin: 0 0 30px 0; font-size: 32px;">📊 License Keys Dashboard V3</h1>
+            
+            <!-- Lisans Yönetimi -->
+            <div class="ald-card">
+                <div class="ald-card-header">
+                    🔑 License Key Management
+                </div>
+                <div class="ald-card-body">
+                    <form method="post" action="">
+                        <?php wp_nonce_field('ald_save_license_keys', 'ald_nonce'); ?>
+                        <div class="ald-form-group">
+                            <label class="ald-form-label">Select Product:</label>
+                            <select name="product_id" class="ald-form-control" required>
+                                <option value="">Choose a product...</option>
+                                <?php foreach ($products as $product): ?>
+                                    <option value="<?php echo $product->get_id(); ?>"><?php echo esc_html($product->get_name()); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="ald-form-group">
+                            <label class="ald-form-label">License Keys (one per line):</label>
+                            <textarea name="license_keys" class="ald-form-control" rows="8" placeholder="KEY-1234-5678-9ABC&#10;KEY-9876-5432-1DEF"></textarea>
+                        </div>
+                        <button type="submit" name="ald_save_license_keys" class="ald-btn ald-btn-primary">
+                            💾 Save License Keys
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- V3: Manuel Lisans Gönder -->
+            <div class="ald-card">
+                <div class="ald-card-header">
+                    📤 Send Manual License (V3 Feature)
+                </div>
+                <div class="ald-card-body">
+                    <form method="post" action="">
+                        <?php wp_nonce_field('ald_send_customer_license', 'ald_nonce'); ?>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div class="ald-form-group">
+                                <label class="ald-form-label">Customer:</label>
+                                <select name="customer_id" class="ald-form-control" required>
+                                    <option value="">Select customer...</option>
+                                    <?php foreach ($customers as $customer): ?>
+                                        <option value="<?php echo $customer->ID; ?>"><?php echo esc_html($customer->display_name . ' (' . $customer->user_email . ')'); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="ald-form-group">
+                                <label class="ald-form-label">Product:</label>
+                                <select name="customer_product_id" class="ald-form-control" required>
+                                    <option value="">Select product...</option>
+                                    <?php foreach ($products as $product): ?>
+                                        <option value="<?php echo $product->get_id(); ?>"><?php echo esc_html($product->get_name()); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="ald-form-group">
+                            <label class="ald-form-label">License Key:</label>
+                            <input type="text" name="customer_license_key" class="ald-form-control" placeholder="KEY-1234-5678-9ABC" required>
+                        </div>
+                        <button type="submit" name="ald_send_customer_license" class="ald-btn ald-btn-primary">
+                            📤 Send License
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <?php
+    }
+    
+    // WooCommerce Integration Methods
+    public function add_license_field() {
+        global $post;
+        
+        if (!$post || $post->post_type !== 'product') {
+            return;
+        }
+        
+        echo '<div class="options_group">';
+        
+        $license_keys = get_post_meta($post->ID, '_license_keys', true);
+        $license_keys = is_array($license_keys) ? $license_keys : array();
+        
+        woocommerce_wp_textarea_input(array(
+            'id' => '_license_keys_text',
+            'label' => __('License Keys (one per line)', 'auto-license-delivery'),
+            'placeholder' => __('Enter license keys, one per line...', 'auto-license-delivery'),
+            'desc_tip' => true,
+            'description' => __('License keys will be automatically delivered to customers upon order completion.', 'auto-license-delivery'),
+            'value' => implode("\n", $license_keys),
+            'custom_attributes' => array('rows' => 8)
+        ));
+        
+        echo '</div>';
+    }
+    
+    public function save_license_field($post_id) {
+        if (!isset($_POST['_license_keys_text'])) {
+            return;
+        }
+        
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            return;
+        }
+        
+        if (!current_user_can('edit_post', $post_id)) {
+            return;
+        }
+        
+        $license_keys = sanitize_textarea_field($_POST['_license_keys_text']);
+        $keys_array = array_filter(explode("\n", $license_keys));
+        $keys_array = array_map('trim', $keys_array);
+        $keys_array = array_unique($keys_array);
+        
+        update_post_meta($post_id, '_license_keys', $keys_array);
+    }
+    
+    public function deliver_license($order_id) {
+        $order = wc_get_order($order_id);
+        if (!$order) {
+            return;
+        }
+        
+        foreach ($order->get_items() as $item) {
+            $product_id = $item->get_product_id();
+            $product = wc_get_product($product_id);
+            
+            if (!$product) {
+                continue;
+            }
+            
+            // Zaten gönderilmiş mi kontrol et
+            if ($this->is_license_already_sent($order_id, $product_id)) {
+                continue;
+            }
+            
+            $license_keys = get_post_meta($product_id, '_license_keys', true);
+            $license_keys = is_array($license_keys) ? $license_keys : array();
+            
+            if (!empty($license_keys)) {
+                $license_key = array_shift($license_keys);
+                
+                // Kullanılan anahtarı listeden kaldır
+                update_post_meta($product_id, '_license_keys', $license_keys);
+                
+                // Veritabanına kaydet
+                $this->save_delivered_license($order, $product_id, $license_key);
+                
+                // E-posta gönder
+                $this->send_license_email($order->get_user(), $product, $license_key);
+                
+                // Sipariş notuna ekle
+                $order->add_order_note(
+                    sprintf(__('License key delivered: %s', 'auto-license-delivery'), $license_key),
+                    false
+                );
+                
+                // Meta data ekle (HPOS uyumlu)
+                $order->update_meta_data('_ald_license_' . $product_id, $license_key);
+                $order->save();
+            } else {
+                // V3 Feature: Stok yoksa pending durumuna al
+                $this->add_to_pending_customers($order, $product_id);
+            }
+        }
+    }
+    
+    private function is_license_already_sent($order_id, $product_id) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ald_license_history';
+        
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $table_name WHERE order_id = %s AND product_id = %d",
+            $order_id, $product_id
+        ));
+        
+        return !empty($existing);
+    }
+    
+    private function save_delivered_license($order, $product_id, $license_key) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ald_license_history';
+        
+        return $wpdb->insert(
+            $table_name,
+            array(
+                'order_id' => $order->get_id(),
+                'product_id' => $product_id,
+                'customer_id' => $order->get_customer_id(),
+                'customer_email' => $order->get_billing_email(),
+                'license_key' => $license_key,
+                'status' => 'sent',
+                'created_at' => current_time('mysql')
+            ),
+            array('%s', '%d', '%d', '%s', '%s', '%s', '%s')
+        );
+    }
+    
+    // V3 Feature: Pending sistem
+    private function add_to_pending_customers($order, $product_id) {
+        global $wpdb;
+        $pending_table = $wpdb->prefix . 'ald_pending_customers';
+        
+        $wpdb->replace(
+            $pending_table,
+            array(
+                'order_id' => $order->get_id(),
+                'product_id' => $product_id,
+                'customer_id' => $order->get_customer_id(),
+                'customer_email' => $order->get_billing_email(),
+                'created_at' => current_time('mysql'),
+                'status' => 'pending'
+            ),
+            array('%s', '%d', '%d', '%s', '%s', '%s')
+        );
+        
+        // Müşteriye bilgi e-postası gönder
+        $this->send_pending_email($order, wc_get_product($product_id));
+    }
+    
+    private function send_pending_email($order, $product) {
+        $customer = $order->get_user();
+        if (!$customer) return;
+        
+        $subject = sprintf('[%s] Your License Key is Being Prepared', get_bloginfo('name'));
+        
+        $message = sprintf('
+            <div style="background: #f8f9fa; padding: 20px; font-family: Arial, sans-serif;">
+                <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <div style="background: linear-gradient(135deg, #ffc107 0%%, #ff8c00 100%%); color: white; padding: 30px 20px; text-align: center;">
+                        <h1 style="margin: 0; font-size: 28px;">⏳ License Key Being Prepared</h1>
+                    </div>
+                    <div style="padding: 30px 20px;">
+                        <p>Hello <strong>%s</strong>,</p>
+                        <p>Thank you for your purchase of <strong>%s</strong>!</p>
+                        <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px; margin: 20px 0; text-align: center;">
+                            <h3 style="color: #856404; margin: 0 0 10px 0;">Your license key is being prepared and will be ready within 24 hours.</h3>
+                            <p style="margin: 0; color: #856404;">We will send you another email with your license key as soon as it is ready.</p>
+                        </div>
+                        <p>Best regards,<br><strong>%s</strong></p>
+                    </div>
+                </div>
+            </div>',
+            esc_html($customer->display_name),
+            esc_html($product->get_name()),
+            esc_html(get_bloginfo('name'))
+        );
+        
+        $headers = array('Content-Type: text/html; charset=UTF-8');
+        
+        return wp_mail($customer->user_email, $subject, $message, $headers);
+    }
+    
+    // V3 Feature: Müşteri panelinde bekleme mesajı göster
+    public function display_pending_license_message($order) {
+        $customer_id = get_current_user_id();
+        if (!$customer_id) return;
+        
+        global $wpdb;
+        $pending_table = $wpdb->prefix . 'ald_pending_customers';
+        
+        $pending = $wpdb->get_results($wpdb->prepare(
+            "SELECT p.*, pr.post_title as product_name FROM $pending_table p
+             LEFT JOIN {$wpdb->posts} pr ON p.product_id = pr.ID 
+             WHERE p.customer_id = %d AND p.status = 'pending' AND p.order_id = %s",
+            $customer_id, $order->get_id()
+        ));
+        
+        if ($pending) {
+            foreach ($pending as $item) {
+                echo '<div class="ald-pending-message">
+                    <h3>⏳ ' . esc_html($item->product_name) . ' - Lisans Anahtarınız Hazırlanıyor</h3>
+                    <p>Ürününüz için lisans anahtarınız 24 saat içerisinde hazırlanacak ve size gönderilecektir.</p>
+                    <small>Oluşturulma: ' . date('d.m.Y H:i', strtotime($item->created_at)) . '</small>
+                </div>';
+            }
+        }
+    }
+    
+    // Customer Account Integration
+    public function add_account_endpoints() {
+        add_rewrite_endpoint('license-keys', EP_ROOT | EP_PAGES);
+    }
+    
+    public function add_account_menu_item($items) {
+        $new_items = array();
+        
+        foreach ($items as $key => $item) {
+            $new_items[$key] = $item;
+            
+            if ('downloads' === $key) {
+                $new_items['license-keys'] = __('My License Keys', 'auto-license-delivery');
+            }
+        }
+        
+        return $new_items;
+    }
+    
+    public function license_keys_content() {
+        $customer_id = get_current_user_id();
+        
+        if (!$customer_id) {
+            wc_print_notice(__('Please log in to view your license keys.', 'auto-license-delivery'), 'error');
+            return;
+        }
+        
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ald_license_history';
+        
+        $licenses = $wpdb->get_results($wpdb->prepare(
+            "SELECT h.*, p.post_title as product_name 
+             FROM $table_name h 
+             LEFT JOIN {$wpdb->posts} p ON h.product_id = p.ID 
+             WHERE h.customer_id = %d 
+             ORDER BY h.created_at DESC",
+            $customer_id
+        ));
+        
+        echo '<div class="ald-customer-licenses">';
+        echo '<h2>🔑 My License Keys</h2>';
+        
+        if (empty($licenses)) {
+            echo '<p style="text-align: center; color: #666; padding: 40px;">No license keys found.</p>';
+        } else {
+            foreach ($licenses as $license) {
+                echo '<div class="ald-license-card">
+                    <div class="ald-license-header">
+                        <h3>' . esc_html($license->product_name) . '</h3>
+                        <span class="ald-license-date">' . date('M j, Y', strtotime($license->created_at)) . '</span>
+                    </div>
+                    <div class="ald-license-key-container">
+                        <div class="ald-license-key-label">License Key:</div>
+                        <div class="ald-license-key-value">' . esc_html($license->license_key) . '</div>
+                    </div>
+                </div>';
+            }
+        }
+        
+        echo '</div>';
+    }
+    
+    public function display_order_licenses($order) {
+        $customer_id = get_current_user_id();
+        if (!$customer_id) return;
+        
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ald_license_history';
+        
+        $licenses = $wpdb->get_results($wpdb->prepare(
+            "SELECT h.*, p.post_title as product_name 
+             FROM $table_name h 
+             LEFT JOIN {$wpdb->posts} p ON h.product_id = p.ID 
+             WHERE h.order_id = %s",
+            $order->get_id()
+        ));
+        
+        if ($licenses) {
+            echo '<h2>🔑 License Keys</h2>';
+            echo '<table class="woocommerce-table woocommerce-table--license-keys">';
+            echo '<thead><tr><th>Product</th><th>License Key</th></tr></thead>';
             echo '<tbody>';
             
-            foreach ($sent_keys as $sent_key) {
+            foreach ($licenses as $license) {
                 echo '<tr>';
-                echo '<td>' . $sent_key['order_id'] . '</td>';
-                echo '<td><code>' . esc_html($sent_key['key']) . '</code></td>';
-                echo '<td>' . $sent_key['date'] . '</td>';
+                echo '<td>' . esc_html($license->product_name) . '</td>';
+                echo '<td><code style="background: #f8f9fa; padding: 8px 12px; border-radius: 4px;">' . esc_html($license->license_key) . '</code></td>';
                 echo '</tr>';
             }
             
             echo '</tbody></table>';
-            echo '</div>';
-        } else {
-            echo '<div class="options_group">';
-            echo '<p>' . __('Henüz gönderilmiş lisans anahtarı bulunmuyor.', 'auto-license-delivery') . '</p>';
-            echo '</div>';
         }
-        ?>
-    </div>
-    <?php
-}
-
-// Lisans anahtarlarını kaydet
-function ald_save_license_key_field($post_id) {
-    $license_keys = isset($_POST['_license_keys']) ? sanitize_textarea_field($_POST['_license_keys']) : '';
-    update_post_meta($post_id, '_license_keys', $license_keys);
-}
-
-// Lisans anahtarını gönder
-function ald_deliver_license_key($order_id) {
-    $order = wc_get_order($order_id);
+    }
     
-    foreach ($order->get_items() as $item) {
-        $product_id = $item->get_product_id();
-        $license_keys = get_post_meta($product_id, '_license_keys', true);
+    public function add_license_to_email($order, $sent_to_admin, $plain_text) {
+        if ($sent_to_admin) return;
         
-        if (!empty($license_keys)) {
-            $keys_array = array_filter(explode("\n", $license_keys));
-            
-            if (!empty($keys_array)) {
-                $license_key = array_shift($keys_array);
-                
-                // Lisans anahtarını sipariş meta verilerine kaydet
-                $order->update_meta_data('_license_key_' . $product_id, $license_key);
-                $order->save();
-                
-                // Gönderilen lisans anahtarını kaydet
-                $sent_keys = get_post_meta($product_id, '_sent_license_keys', true);
-                if (!is_array($sent_keys)) {
-                    $sent_keys = array();
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ald_license_history';
+        
+        $licenses = $wpdb->get_results($wpdb->prepare(
+            "SELECT h.*, p.post_title as product_name 
+             FROM $table_name h 
+             LEFT JOIN {$wpdb->posts} p ON h.product_id = p.ID 
+             WHERE h.order_id = %s",
+            $order->get_id()
+        ));
+        
+        if ($licenses) {
+            if ($plain_text) {
+                echo "\n\nLicense Keys:\n";
+                foreach ($licenses as $license) {
+                    echo $license->product_name . ": " . $license->license_key . "\n";
                 }
-                
-                $sent_keys[] = array(
-                    'order_id' => $order_id,
-                    'key' => $license_key,
-                    'date' => current_time('mysql'),
-                    'customer_id' => $order->get_customer_id()
-                );
-                
-                update_post_meta($product_id, '_sent_license_keys', $sent_keys);
-                
-                // Lisans anahtarını sipariş notlarına ekle
-                $order->add_order_note(
-                    sprintf(__('Lisans Anahtarı: %s', 'auto-license-delivery'), $license_key),
-                    false
-                );
-                
-                // Müşteriye e-posta gönder
-                $customer_email = $order->get_billing_email();
-                $subject = sprintf(__('Sipariş #%s için Lisans Anahtarınız', 'auto-license-delivery'), $order_id);
-                
-                // HTML formatında e-posta
-                $message = sprintf(
-                    '<p>Merhaba %s,</p>
-                    <p>Siparişiniz için lisans anahtarınız:</p>
-                    <p style="background: #f5f5f5; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 16px;">%s</p>
-                    <p>Saygılarımızla,<br>%s</p>',
-                    $order->get_billing_first_name(),
-                    $license_key,
-                    get_bloginfo('name')
-                );
-                
-                $headers = array('Content-Type: text/html; charset=UTF-8');
-                wp_mail($customer_email, $subject, $message, $headers);
-                
-                // Kullanılan anahtarı listeden çıkar
-                update_post_meta($product_id, '_license_keys', implode("\n", $keys_array));
-            }
-        }
-    }
-}
-
-// Sipariş detay sayfasında lisans anahtarlarını göster
-function ald_display_license_keys_in_order($order) {
-    $order = wc_get_order($order->get_id());
-    
-    echo '<h2>' . __('Lisans Anahtarları', 'auto-license-delivery') . '</h2>';
-    echo '<table class="woocommerce-table woocommerce-table--license-keys">';
-    echo '<thead><tr><th>' . __('Ürün', 'auto-license-delivery') . '</th><th>' . __('Lisans Anahtarı', 'auto-license-delivery') . '</th></tr></thead>';
-    echo '<tbody>';
-    
-    foreach ($order->get_items() as $item) {
-        $product_id = $item->get_product_id();
-        $license_key = $order->get_meta('_license_key_' . $product_id);
-        
-        if (!empty($license_key)) {
-            echo '<tr>';
-            echo '<td>' . $item->get_name() . '</td>';
-            echo '<td><code>' . esc_html($license_key) . '</code></td>';
-            echo '</tr>';
-        }
-    }
-    
-    echo '</tbody></table>';
-}
-
-// Siparişlerim listesinde lisans anahtarlarını göster
-function ald_display_license_keys_in_orders_list($order) {
-    $order = wc_get_order($order->get_id());
-    
-    foreach ($order->get_items() as $item) {
-        $product_id = $item->get_product_id();
-        $license_key = $order->get_meta('_license_key_' . $product_id);
-        
-        if (!empty($license_key)) {
-            echo '<br><small>' . __('Lisans Anahtarı:', 'auto-license-delivery') . ' <code>' . esc_html($license_key) . '</code></small>';
-        }
-    }
-}
-
-// Müşteri paneli lisans anahtarları sayfası
-function ald_my_account_license_keys() {
-    $customer_id = get_current_user_id();
-    $products = wc_get_products(array(
-        'limit' => -1,
-        'status' => 'publish',
-        'type' => array('simple', 'variable')
-    ));
-    
-    echo '<h2>' . __('Lisans Anahtarlarım', 'auto-license-delivery') . '</h2>';
-    echo '<table class="woocommerce-table woocommerce-table--license-keys">';
-    echo '<thead><tr><th>' . __('Ürün', 'auto-license-delivery') . '</th><th>' . __('Lisans Anahtarı', 'auto-license-delivery') . '</th><th>' . __('Tarih', 'auto-license-delivery') . '</th></tr></thead>';
-    echo '<tbody>';
-    
-    foreach ($products as $product) {
-        $sent_keys = get_post_meta($product->get_id(), '_sent_license_keys', true);
-        if (!empty($sent_keys) && is_array($sent_keys)) {
-            foreach ($sent_keys as $sent_key) {
-                if (isset($sent_key['customer_id']) && $sent_key['customer_id'] == $customer_id) {
+            } else {
+                echo '<h2>License Keys</h2>';
+                echo '<table style="width: 100%; border-collapse: collapse;">';
+                foreach ($licenses as $license) {
                     echo '<tr>';
-                    echo '<td>' . $product->get_name() . '</td>';
-                    echo '<td><code>' . esc_html($sent_key['key']) . '</code></td>';
-                    echo '<td>' . $sent_key['date'] . '</td>';
+                    echo '<td style="padding: 10px; border: 1px solid #ddd;">' . esc_html($license->product_name) . '</td>';
+                    echo '<td style="padding: 10px; border: 1px solid #ddd; font-family: monospace;">' . esc_html($license->license_key) . '</td>';
                     echo '</tr>';
                 }
+                echo '</table>';
             }
         }
     }
-    
-    echo '</tbody></table>';
-}
-add_action('woocommerce_account_license-keys_endpoint', 'ald_my_account_license_keys');
-
-// Müşteri paneli endpoint ekle
-function ald_add_endpoints() {
-    add_rewrite_endpoint('license-keys', EP_ROOT | EP_PAGES);
-}
-add_action('init', 'ald_add_endpoints');
-
-// Müşteri paneli menüsüne lisans anahtarları ekle
-function ald_add_my_account_menu_item($items) {
-    $items['license-keys'] = __('Lisans Anahtarlarım', 'auto-license-delivery');
-    return $items;
 }
 
-// İndirme sayfasına lisans anahtarlarını ekle
-function ald_add_downloads_license_keys($downloads) {
-    $customer_id = get_current_user_id();
-    $products = wc_get_products(array(
-        'limit' => -1,
-        'status' => 'publish',
-        'type' => array('simple', 'variable')
-    ));
-    
-    foreach ($products as $product) {
-        $sent_keys = get_post_meta($product->get_id(), '_sent_license_keys', true);
-        if (!empty($sent_keys) && is_array($sent_keys)) {
-            foreach ($sent_keys as $sent_key) {
-                if (isset($sent_key['customer_id']) && $sent_key['customer_id'] == $customer_id) {
-                    $downloads[] = array(
-                        'download_url' => '#',
-                        'download_id' => 'license-' . $sent_key['key'],
-                        'product_id' => $product->get_id(),
-                        'product_name' => $product->get_name(),
-                        'download_name' => sprintf(__('Lisans Anahtarı: %s', 'auto-license-delivery'), $sent_key['key']),
-                        'order_id' => $sent_key['order_id'],
-                        'order_key' => $sent_key['order_id'],
-                        'downloads_remaining' => '',
-                        'access_expires' => '',
-                        'expires' => '',
-                        'file' => array(
-                            'name' => sprintf(__('Lisans Anahtarı: %s', 'auto-license-delivery'), $sent_key['key']),
-                            'file' => '',
-                            'id' => 'license-' . $sent_key['key']
-                        )
-                    );
-                }
-            }
-        }
-    }
-    
-    return $downloads;
+// Plugin'i başlat
+function ald_init() {
+    AutoLicenseDelivery_V3::get_instance();
 }
-add_filter('woocommerce_account_downloads', 'ald_add_downloads_license_keys'); 
+add_action('plugins_loaded', 'ald_init'); 
