@@ -47,8 +47,10 @@ Modern, güvenli ve şık lisans anahtarı teslim sistemi. WooCommerce siparişl
 
 - **Modern UI**: Kart tabanlı güzel tasarım
 - **Koyu Arkaplan**: Lisans anahtarları siyah arkaplan, beyaz yazı ile net görünüm
+- **Bekleme Sistemi**: Lisans yoksa güzel turuncu "hazırlanıyor" kutusu
+- **Otomatik Yenileme**: Pending lisanslar 30 saniyede bir kontrol edilir
 - **Responsive**: Mobil cihazlarda mükemmel görünüm
-- **Kolay Kopyalama**: Lisans anahtarlarını kolayca kopyalayabilme
+- **Tek Tablo**: Normal ve bekleyen lisanslar aynı tabloda
 
 ## 🔧 Teknik Özellikler
 

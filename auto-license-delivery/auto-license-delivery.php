@@ -1312,19 +1312,6 @@ class AutoLicenseDelivery {
             $customer_id
         ));
         
-        echo '<h2 style="color: #333; margin-bottom: 20px;">🔑 Lisans Anahtarlarım</h2>';
-        
-        if (empty($licenses)) {
-            echo '<div style="text-align: center; padding: 40px; color: #666; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">';
-            echo '<p style="font-size: 18px; margin-bottom: 10px;">📋 Henüz lisans anahtarınız yok</p>';
-            echo '<p>Lisanslı ürün satın aldığınızda anahtarlarınız burada görünecek.</p>';
-            echo '<div style="margin-top: 20px; padding: 15px; background: #f0f8ff; border-radius: 8px;">';
-            echo '<small>👨‍💻 <strong>Geliştirici:</strong> BERAT K - WhatsApp: <a href="https://wa.me/905395115632" style="color: #25d366;">0539 511 56 32</a></small>';
-            echo '</div>';
-            echo '</div>';
-            return;
-        }
-        
         // Sent ve pending lisansları ayır
         $sent_licenses = array();
         $pending_licenses = array();
@@ -1337,74 +1324,97 @@ class AutoLicenseDelivery {
             }
         }
         
-        // Pending lisansları göster
+        echo '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">';
+        echo '<h2 style="color: #333; margin: 0;">🔑 Lisans Anahtarlarım</h2>';
         if (!empty($pending_licenses)) {
-            echo '<div style="background: #fff3e0; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; border-left: 4px solid #ff9800;">';
-            echo '<div style="padding: 20px; background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; text-align: center;">';
-            echo '<h3 style="margin: 0; color: white;">⏳ Hazırlanan Lisans Anahtarları</h3>';
-            echo '<p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">Aşağıdaki ürünler için lisans anahtarlarınız hazırlanıyor</p>';
+            echo '<button onclick="location.reload();" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 8px 15px; border-radius: 20px; font-size: 12px; cursor: pointer; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);">🔄 Yenile</button>';
+        }
+        echo '</div>';
+        
+        if (empty($licenses)) {
+            echo '<div style="text-align: center; padding: 40px; color: #666; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">';
+            echo '<p style="font-size: 18px; margin-bottom: 10px;">📋 Henüz lisans anahtarınız yok</p>';
+            echo '<p>Lisanslı ürün satın aldığınızda anahtarlarınız burada görünecek.</p>';
+            echo '<div style="margin-top: 20px; padding: 15px; background: #f0f8ff; border-radius: 8px;">';
+            echo '<small>👨‍💻 <strong>Geliştirici:</strong> BERAT K - WhatsApp: <a href="https://wa.me/905395115632" style="color: #25d366;">0539 511 56 32</a></small>';
+            echo '</div>';
+            echo '</div>';
+            return;
+        }
+        
+        // Pending lisansları varsa otomatik yenileme ekle
+        if (!empty($pending_licenses)) {
+            echo '<script>';
+            echo 'setTimeout(function() { location.reload(); }, 30000);'; // 30 saniyede bir yenile
+            echo '</script>';
+        }
+        
+        // Tüm lisansları tek tabloda göster
+        echo '<div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">';
+        echo '<table class="shop_table shop_table_responsive" style="margin: 0; border: none;">';
+        echo '<thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">';
+        echo '<tr>';
+        echo '<th style="color: white; padding: 15px;">Ürün Adı</th>';
+        echo '<th style="color: white; padding: 15px;">Lisans Anahtarı</th>';
+        echo '<th style="color: white; padding: 15px;">Satın Alma Tarihi</th>';
+        echo '</tr>';
+        echo '</thead>';
+        echo '<tbody>';
+        
+        // Önce normal lisansları göster
+        foreach ($sent_licenses as $license) {
+            echo '<tr style="border-bottom: 1px solid #f0f0f0;">';
+            echo '<td style="padding: 15px;"><strong style="color: #333;">' . esc_html($license->product_name) . '</strong></td>';
+            echo '<td style="padding: 15px;"><code style="background: #333; color: white; padding: 10px 15px; border-radius: 6px; font-family: monospace; font-size: 13px; word-break: break-all;">' . esc_html($license->license_key) . '</code></td>';
+            echo '<td style="padding: 15px; color: #666;">' . date('d F Y', strtotime($license->created_at)) . '</td>';
+            echo '</tr>';
+        }
+        
+        // Sonra pending lisansları göster
+        foreach ($pending_licenses as $license) {
+            $waiting_time = human_time_diff(strtotime($license->created_at), current_time('timestamp'));
+            echo '<tr style="border-bottom: 1px solid #f0f0f0; background: linear-gradient(90deg, #fff3e0 0%, #ffffff 100%);">';
+            echo '<td style="padding: 15px;"><strong style="color: #333;">' . esc_html($license->product_name) . '</strong></td>';
+            echo '<td style="padding: 15px;">';
+            
+            // Güzel bekleme tasarımı
+            echo '<div style="position: relative; background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); border-radius: 10px; padding: 15px; color: white; text-align: center; min-height: 60px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);">';
+            echo '<div style="position: absolute; top: 5px; right: 8px; font-size: 10px; opacity: 0.8;">⏳</div>';
+            echo '<div>';
+            echo '<div style="font-size: 14px; font-weight: bold; margin-bottom: 3px;">🔄 Hazırlanıyor</div>';
+            echo '<div style="font-size: 11px; opacity: 0.9;">24 saat içinde hesabınıza tanımlanacak</div>';
+            echo '<div style="font-size: 10px; margin-top: 5px; opacity: 0.7;">' . $waiting_time . ' önce sipariş verildi</div>';
+            echo '</div>';
             echo '</div>';
             
-            echo '<table class="shop_table shop_table_responsive" style="margin: 0; border: none;">';
-            echo '<thead style="background: #fff3e0;">';
-            echo '<tr>';
-            echo '<th style="color: #e65100; padding: 15px;">Ürün Adı</th>';
-            echo '<th style="color: #e65100; padding: 15px;">Durum</th>';
-            echo '<th style="color: #e65100; padding: 15px;">Sipariş Tarihi</th>';
+            echo '</td>';
+            echo '<td style="padding: 15px; color: #666;">' . date('d F Y', strtotime($license->created_at)) . '</td>';
             echo '</tr>';
-            echo '</thead>';
-            echo '<tbody>';
-            
-            foreach ($pending_licenses as $license) {
-                $waiting_time = human_time_diff(strtotime($license->created_at), current_time('timestamp'));
-                echo '<tr style="border-bottom: 1px solid #ffe0b2;">';
-                echo '<td style="padding: 15px;"><strong style="color: #333;">' . esc_html($license->product_name) . '</strong></td>';
-                echo '<td style="padding: 15px;">';
-                echo '<span style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 8px 12px; border-radius: 20px; font-size: 12px; font-weight: bold;">';
-                echo '⏳ 24 saat içinde hazır';
-                echo '</span>';
-                echo '<br><small style="color: #ff9800; margin-top: 5px; display: block;">' . $waiting_time . ' önce sipariş verildi</small>';
-                echo '</td>';
-                echo '<td style="padding: 15px; color: #666;">' . date('d F Y', strtotime($license->created_at)) . '</td>';
-                echo '</tr>';
-            }
-            
-            echo '</tbody>';
-            echo '</table>';
-            echo '<div style="padding: 15px; background: #fff3e0; text-align: center; border-top: 1px solid #ffe0b2;">';
-            echo '<small style="color: #e65100;">💡 <strong>Bilgi:</strong> Lisans anahtarınız hazır olduğunda size e-posta ile bildirilecek ve buraya eklenecektir.</small>';
+        }
+        
+        echo '</tbody>';
+        echo '</table>';
+        
+        // Footer bilgileri
+        echo '<div style="padding: 15px; background: #f8f9fa; border-top: 1px solid #eee;">';
+        
+        if (!empty($pending_licenses)) {
+            echo '<div style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #2196f3;">';
+            echo '<div style="display: flex; align-items: center; gap: 10px;">';
+            echo '<div style="font-size: 24px;">💡</div>';
+            echo '<div>';
+            echo '<div style="font-weight: bold; color: #1976d2; font-size: 14px;">Lisans Anahtarı Hazırlama Süreci</div>';
+            echo '<div style="color: #1976d2; font-size: 12px; margin-top: 3px;">Lisans anahtarınız hazır olduğunda size e-posta ile bildirilecek ve bu sayfada otomatik olarak görünecektir.</div>';
+            echo '</div>';
             echo '</div>';
             echo '</div>';
         }
         
-        // Normal lisansları göster
-        if (!empty($sent_licenses)) {
-            echo '<div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">';
-            echo '<table class="shop_table shop_table_responsive" style="margin: 0; border: none;">';
-            echo '<thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">';
-            echo '<tr>';
-            echo '<th style="color: white; padding: 15px;">Ürün Adı</th>';
-            echo '<th style="color: white; padding: 15px;">Lisans Anahtarı</th>';
-            echo '<th style="color: white; padding: 15px;">Satın Alma Tarihi</th>';
-            echo '</tr>';
-            echo '</thead>';
-            echo '<tbody>';
-            
-            foreach ($sent_licenses as $license) {
-                echo '<tr style="border-bottom: 1px solid #f0f0f0;">';
-                echo '<td style="padding: 15px;"><strong style="color: #333;">' . esc_html($license->product_name) . '</strong></td>';
-                echo '<td style="padding: 15px;"><code style="background: #333; color: white; padding: 10px 15px; border-radius: 6px; font-family: monospace; font-size: 13px; word-break: break-all;">' . esc_html($license->license_key) . '</code></td>';
-                echo '<td style="padding: 15px; color: #666;">' . date('d F Y', strtotime($license->created_at)) . '</td>';
-                echo '</tr>';
-            }
-            
-            echo '</tbody>';
-            echo '</table>';
-            echo '<div style="padding: 15px; background: #f8f9fa; border-top: 1px solid #eee; text-align: center;">';
-            echo '<small style="color: #666;">👨‍💻 <strong>Geliştirici:</strong> BERAT K - WhatsApp: <a href="https://wa.me/905395115632" style="color: #25d366; text-decoration: none;">0539 511 56 32</a></small>';
-            echo '</div>';
-            echo '</div>';
-        }
+        echo '<div style="text-align: center;">';
+        echo '<small style="color: #666;">👨‍💻 <strong>Geliştirici:</strong> BERAT K - WhatsApp: <a href="https://wa.me/905395115632" style="color: #25d366; text-decoration: none;">0539 511 56 32</a></small>';
+        echo '</div>';
+        echo '</div>';
+        echo '</div>';
     }
     
     public function display_order_licenses($order) {
@@ -1422,6 +1432,18 @@ class AutoLicenseDelivery {
         ));
         
         if (!empty($licenses)) {
+            // Sent ve pending lisansları ayır
+            $sent_licenses = array();
+            $pending_licenses = array();
+            
+            foreach ($licenses as $license) {
+                if ($license->status === 'pending') {
+                    $pending_licenses[] = $license;
+                } else {
+                    $sent_licenses[] = $license;
+                }
+            }
+            
             echo '<h2 style="color: #333; margin: 30px 0 20px 0;">🔑 Lisans Anahtarlarınız</h2>';
             echo '<div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: 20px 0;">';
             echo '<table class="woocommerce-table woocommerce-table--order-downloads shop_table shop_table_responsive order_downloads" style="margin: 0; border: none;">';
@@ -1433,17 +1455,50 @@ class AutoLicenseDelivery {
             echo '</thead>';
             echo '<tbody>';
             
-            foreach ($licenses as $license) {
+            // Normal lisansları göster
+            foreach ($sent_licenses as $license) {
                 echo '<tr style="border-bottom: 1px solid #f0f0f0;">';
                 echo '<td style="padding: 15px;"><strong style="color: #333;">' . esc_html($license->product_name) . '</strong></td>';
                 echo '<td style="padding: 15px;"><code style="background: #333; color: white; padding: 10px 15px; border-radius: 6px; font-family: monospace; font-size: 13px; word-break: break-all;">' . esc_html($license->license_key) . '</code></td>';
                 echo '</tr>';
             }
             
+            // Pending lisansları göster
+            foreach ($pending_licenses as $license) {
+                $waiting_time = human_time_diff(strtotime($license->created_at), current_time('timestamp'));
+                echo '<tr style="border-bottom: 1px solid #f0f0f0; background: linear-gradient(90deg, #fff3e0 0%, #ffffff 100%);">';
+                echo '<td style="padding: 15px;"><strong style="color: #333;">' . esc_html($license->product_name) . '</strong></td>';
+                echo '<td style="padding: 15px;">';
+                
+                // Güzel bekleme tasarımı
+                echo '<div style="position: relative; background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); border-radius: 10px; padding: 12px; color: white; text-align: center; min-height: 50px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);">';
+                echo '<div style="position: absolute; top: 3px; right: 6px; font-size: 8px; opacity: 0.8;">⏳</div>';
+                echo '<div>';
+                echo '<div style="font-size: 12px; font-weight: bold; margin-bottom: 2px;">🔄 Hazırlanıyor</div>';
+                echo '<div style="font-size: 9px; opacity: 0.9;">24 saat içinde hazır olacak</div>';
+                echo '</div>';
+                echo '</div>';
+                
+                echo '</td>';
+                echo '</tr>';
+            }
+            
             echo '</tbody>';
             echo '</table>';
-            echo '<div style="padding: 15px; background: #f8f9fa; border-top: 1px solid #eee; text-align: center;">';
+            
+            // Footer bilgileri
+            echo '<div style="padding: 15px; background: #f8f9fa; border-top: 1px solid #eee;">';
+            
+            if (!empty($pending_licenses)) {
+                echo '<div style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); padding: 12px; border-radius: 6px; margin-bottom: 12px; border-left: 3px solid #2196f3; text-align: center;">';
+                echo '<div style="font-weight: bold; color: #1976d2; font-size: 12px;">💡 Lisans Anahtarı Hazırlama Süreci</div>';
+                echo '<div style="color: #1976d2; font-size: 10px; margin-top: 2px;">Lisans anahtarınız hazır olduğunda size e-posta ile bildirilecek</div>';
+                echo '</div>';
+            }
+            
+            echo '<div style="text-align: center;">';
             echo '<small style="color: #666;">👨‍💻 <strong>Geliştirici:</strong> BERAT K - WhatsApp: <a href="https://wa.me/905395115632" style="color: #25d366; text-decoration: none;">0539 511 56 32</a></small>';
+            echo '</div>';
             echo '</div>';
             echo '</div>';
         }
@@ -1468,11 +1523,26 @@ class AutoLicenseDelivery {
         ));
         
         if (!empty($licenses)) {
+            // Sent ve pending lisansları ayır
+            $sent_licenses = array();
+            $pending_licenses = array();
+            
+            foreach ($licenses as $license) {
+                if ($license->status === 'pending') {
+                    $pending_licenses[] = $license;
+                } else {
+                    $sent_licenses[] = $license;
+                }
+            }
+            
             if ($plain_text) {
                 echo "\n🔑 LİSANS ANAHTARLARI:\n";
                 echo str_repeat('-', 40) . "\n";
-                foreach ($licenses as $license) {
+                foreach ($sent_licenses as $license) {
                     echo $license->product_name . ': ' . $license->license_key . "\n";
+                }
+                foreach ($pending_licenses as $license) {
+                    echo $license->product_name . ': ⏳ 24 saat içinde hazırlanacak\n";
                 }
                 echo "\n👨‍💻 Geliştirici: BERAT K - WhatsApp: 0539 511 56 32\n";
             } else {
@@ -1486,15 +1556,37 @@ class AutoLicenseDelivery {
                 echo '</thead>';
                 echo '<tbody style="background: white;">';
                 
-                foreach ($licenses as $license) {
+                // Normal lisansları göster
+                foreach ($sent_licenses as $license) {
                     echo '<tr style="border-bottom: 1px solid #f0f0f0;">';
                     echo '<td style="padding: 15px; border: none;"><strong>' . esc_html($license->product_name) . '</strong></td>';
                     echo '<td style="padding: 15px; border: none;"><code style="background: #333; color: white; padding: 8px 12px; border-radius: 4px; font-family: monospace;">' . esc_html($license->license_key) . '</code></td>';
                     echo '</tr>';
                 }
                 
+                // Pending lisansları göster
+                foreach ($pending_licenses as $license) {
+                    echo '<tr style="border-bottom: 1px solid #f0f0f0; background: linear-gradient(90deg, #fff3e0 0%, #ffffff 100%);">';
+                    echo '<td style="padding: 15px; border: none;"><strong>' . esc_html($license->product_name) . '</strong></td>';
+                    echo '<td style="padding: 15px; border: none;">';
+                    echo '<div style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); border-radius: 8px; padding: 10px; color: white; text-align: center; font-size: 11px; box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);">';
+                    echo '🔄 <strong>Hazırlanıyor</strong><br>';
+                    echo '<span style="opacity: 0.9;">24 saat içinde hesabınıza tanımlanacak</span>';
+                    echo '</div>';
+                    echo '</td>';
+                    echo '</tr>';
+                }
+                
                 echo '</tbody>';
                 echo '</table>';
+                
+                if (!empty($pending_licenses)) {
+                    echo '<div style="margin: 20px 0; padding: 15px; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-radius: 8px; text-align: center; border-left: 4px solid #2196f3;">';
+                    echo '<div style="font-weight: bold; color: #1976d2; font-size: 14px;">💡 Lisans Anahtarı Hazırlama Süreci</div>';
+                    echo '<div style="color: #1976d2; font-size: 12px; margin-top: 5px;">Lisans anahtarınız hazır olduğunda size tekrar e-posta ile bildirilecektir.</div>';
+                    echo '</div>';
+                }
+                
                 echo '<div style="margin-top: 20px; padding: 15px; background: #f0f8ff; border-radius: 8px; text-align: center;">';
                 echo '<small style="color: #666;">👨‍💻 <strong>Geliştirici:</strong> BERAT K - WhatsApp: <a href="https://wa.me/905395115632" style="color: #25d366; text-decoration: none;">0539 511 56 32</a></small>';
                 echo '</div>';
