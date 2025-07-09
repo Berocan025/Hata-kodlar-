@@ -115,6 +115,8 @@ class AutoLicenseDelivery {
         
         add_action('wp_ajax_ald_get_license_stats', array($this, 'ajax_get_license_stats'));
         add_action('wp_ajax_ald_save_license_keys', array($this, 'ajax_save_license_keys'));
+        add_action('wp_ajax_ald_get_pending_customers', array($this, 'ajax_get_pending_customers'));
+        add_action('wp_ajax_ald_process_pending_customers', array($this, 'ajax_process_pending_customers'));
         
         add_action('woocommerce_order_details_after_order_table', array($this, 'display_order_licenses'));
         add_action('woocommerce_email_order_meta', array($this, 'add_license_to_email'), 10, 3);
@@ -143,13 +145,15 @@ class AutoLicenseDelivery {
             product_id bigint(20) NOT NULL,
             customer_id bigint(20) NOT NULL,
             customer_email varchar(255) NOT NULL,
-            license_key varchar(255) NOT NULL,
+            license_key varchar(255) DEFAULT '',
             status varchar(20) DEFAULT 'sent',
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY order_id (order_id),
             KEY product_id (product_id),
-            KEY customer_id (customer_id)
+            KEY customer_id (customer_id),
+            KEY status (status)
         ) $charset_collate;";
         
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
@@ -410,9 +414,79 @@ class AutoLicenseDelivery {
                             Swal.fire("Error", response.data || "An error occurred", "error");
                         }
                     }
-                });
-            });
-        });
+                                 });
+             });
+             
+             // Bekleyen müşteriler yönetimi
+             $("#refresh_pending_customers").click(function() {
+                 $("#pending_customers_list").html("<div style=\'text-align: center; padding: 20px;\'>⏳ Yükleniyor...</div>");
+                 
+                 $.ajax({
+                     url: ald_ajax.url,
+                     type: "POST",
+                     data: {
+                         action: "ald_get_pending_customers",
+                         nonce: ald_ajax.nonce
+                     },
+                     success: function(response) {
+                         if (response.success) {
+                             $("#pending_customers_list").html(response.data.html);
+                             $("#pending_count_badge").text(response.data.count + " bekleyen");
+                             
+                             // Checkbox event handlers
+                             $("#select_all_pending").change(function() {
+                                 $(".pending-customer-checkbox").prop("checked", this.checked);
+                             });
+                             
+                             $("#process_selected_pending").click(function() {
+                                 var selectedIds = [];
+                                 $(".pending-customer-checkbox:checked").each(function() {
+                                     selectedIds.push($(this).val());
+                                 });
+                                 
+                                 if (selectedIds.length === 0) {
+                                     Swal.fire("Uyarı", "Lütfen en az bir müşteri seçin!", "warning");
+                                     return;
+                                 }
+                                 
+                                 Swal.fire({
+                                     title: "Emin misiniz?",
+                                     text: selectedIds.length + " müşteriye lisans anahtarı gönderilecek",
+                                     icon: "question",
+                                     showCancelButton: true,
+                                     confirmButtonText: "Evet, Gönder",
+                                     cancelButtonText: "İptal"
+                                 }).then((result) => {
+                                     if (result.isConfirmed) {
+                                         $.ajax({
+                                             url: ald_ajax.url,
+                                             type: "POST",
+                                             data: {
+                                                 action: "ald_process_pending_customers",
+                                                 customer_ids: selectedIds,
+                                                 nonce: ald_ajax.nonce
+                                             },
+                                             success: function(response) {
+                                                 if (response.success) {
+                                                     Swal.fire("Başarılı!", response.data, "success");
+                                                     $("#refresh_pending_customers").click(); // Listeyi yenile
+                                                 } else {
+                                                     Swal.fire("Hata", response.data, "error");
+                                                 }
+                                             }
+                                         });
+                                     }
+                                 });
+                             });
+                             
+                             $("#refresh_pending_list").click(function() {
+                                 $("#refresh_pending_customers").click();
+                             });
+                         }
+                     }
+                 });
+             });
+         });
         ';
     }
     
@@ -467,7 +541,36 @@ class AutoLicenseDelivery {
         
         update_post_meta($product_id, '_ald_license_keys', $keys_array);
         
-        wp_send_json_success('Lisans anahtarları başarıyla kaydedildi! 🎉 Geliştirici: BERAT K');
+        // Bekleyen müşterileri kontrol et ve otomatik gönder
+        $this->auto_process_pending_customers($product_id);
+        
+        wp_send_json_success('Lisans anahtarları başarıyla kaydedildi! 🎉 Bekleyen müşterilere otomatik gönderim yapıldı. Geliştirici: BERAT K');
+    }
+    
+    public function ajax_get_pending_customers() {
+        check_ajax_referer('ald_admin_nonce', 'nonce');
+        
+        $pending_customers = $this->get_pending_customers();
+        $html = $this->generate_pending_customers_html($pending_customers);
+        
+        wp_send_json_success(array(
+            'html' => $html,
+            'count' => count($pending_customers)
+        ));
+    }
+    
+    public function ajax_process_pending_customers() {
+        check_ajax_referer('ald_admin_nonce', 'nonce');
+        
+        $customer_ids = isset($_POST['customer_ids']) ? array_map('intval', $_POST['customer_ids']) : array();
+        
+        if (empty($customer_ids)) {
+            wp_send_json_error('Müşteri seçilmedi!');
+        }
+        
+        $processed = $this->process_selected_pending_customers($customer_ids);
+        
+        wp_send_json_success("$processed müşteriye lisans anahtarı gönderildi! 🎉 Geliştirici: BERAT K");
     }
     
     private function get_product_license_stats($product_id) {
@@ -558,6 +661,7 @@ class AutoLicenseDelivery {
         $total_products = $this->get_total_products_with_licenses();
         $total_licenses = $this->get_total_licenses();
         $total_sold = $this->get_total_sold_licenses();
+        $total_pending = $this->get_total_pending_licenses();
         $products = $this->get_products_with_licenses();
         
         ?>
@@ -576,6 +680,10 @@ class AutoLicenseDelivery {
                 <div class="ald-stat-card">
                     <div class="ald-stat-number"><?php echo $total_sold; ?></div>
                     <div class="ald-stat-label">Satılan Lisanslar</div>
+                </div>
+                <div class="ald-stat-card" style="<?php echo $total_pending > 0 ? 'background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white;' : ''; ?>">
+                    <div class="ald-stat-number" style="<?php echo $total_pending > 0 ? 'color: white;' : '#667eea'; ?>"><?php echo $total_pending; ?></div>
+                    <div class="ald-stat-label" style="<?php echo $total_pending > 0 ? 'color: rgba(255,255,255,0.8);' : ''; ?>">⏳ Bekleyen Müşteriler</div>
                 </div>
                 <div class="ald-stat-card">
                     <div class="ald-stat-number"><?php echo ($total_licenses - $total_sold); ?></div>
@@ -611,6 +719,23 @@ class AutoLicenseDelivery {
                     
                     <div style="margin-top: 15px; padding: 10px; background: #f0f8ff; border-radius: 8px; text-align: center;">
                         <small>👨‍💻 <strong>Geliştirici:</strong> BERAT K - 📱 <a href="https://wa.me/905395115632">0539 511 56 32</a></small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="ald-card">
+                <div class="ald-card-header">
+                    ⏳ Bekleyen Müşteriler (Lisans Bekleniyor)
+                </div>
+                <div class="ald-card-body">
+                    <div style="margin-bottom: 15px;">
+                        <button id="refresh_pending_customers" class="ald-btn ald-btn-primary">🔄 Bekleyen Müşterileri Yükle</button>
+                        <span id="pending_count_badge" style="background: #ff9800; color: white; padding: 5px 10px; border-radius: 15px; margin-left: 10px; font-size: 12px;">0 bekleyen</span>
+                    </div>
+                    <div id="pending_customers_list">
+                        <div style="text-align: center; padding: 20px; color: #666;">
+                            Bekleyen müşterileri görmek için yukarıdaki butona tıklayın
+                        </div>
                     </div>
                 </div>
             </div>
@@ -660,7 +785,13 @@ class AutoLicenseDelivery {
     private function get_total_sold_licenses() {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ald_license_history';
-        return $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
+        return $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE status = 'sent'");
+    }
+    
+    private function get_total_pending_licenses() {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ald_license_history';
+        return $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE status = 'pending'");
     }
     
     private function get_products_with_licenses() {
@@ -674,6 +805,185 @@ class AutoLicenseDelivery {
         ");
     }
     
+    private function get_pending_customers() {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ald_license_history';
+        
+        return $wpdb->get_results("
+            SELECT h.*, p.post_title as product_name, u.display_name as customer_name
+            FROM $table_name h
+            LEFT JOIN {$wpdb->posts} p ON h.product_id = p.ID
+            LEFT JOIN {$wpdb->users} u ON h.customer_id = u.ID
+            WHERE h.status = 'pending'
+            ORDER BY h.created_at ASC
+        ");
+    }
+    
+    private function generate_pending_customers_html($pending_customers) {
+        if (empty($pending_customers)) {
+            return '<div style="text-align: center; padding: 40px; color: #666;">
+                        <p>🎉 Bekleyen müşteri yok!</p>
+                        <p>Tüm müşterilere lisans anahtarları teslim edilmiş.</p>
+                    </div>';
+        }
+        
+        ob_start();
+        echo '<table class="ald-table">';
+        echo '<thead>';
+        echo '<tr>';
+        echo '<th><input type="checkbox" id="select_all_pending" style="margin-right: 5px;">Tümünü Seç</th>';
+        echo '<th>Müşteri</th>';
+        echo '<th>Ürün</th>';
+        echo '<th>Sipariş ID</th>';
+        echo '<th>Bekleme Süresi</th>';
+        echo '</tr>';
+        echo '</thead>';
+        echo '<tbody>';
+        
+        foreach ($pending_customers as $customer) {
+            $waiting_time = human_time_diff(strtotime($customer->created_at), current_time('timestamp'));
+            echo '<tr>';
+            echo '<td><input type="checkbox" class="pending-customer-checkbox" value="' . $customer->id . '"></td>';
+            echo '<td><strong>' . esc_html($customer->customer_name) . '</strong><br><small>' . esc_html($customer->customer_email) . '</small></td>';
+            echo '<td>' . esc_html($customer->product_name) . '</td>';
+            echo '<td>#' . esc_html($customer->order_id) . '</td>';
+            echo '<td><span style="color: #ff9800;">' . $waiting_time . ' önce</span></td>';
+            echo '</tr>';
+        }
+        
+        echo '</tbody>';
+        echo '</table>';
+        
+        echo '<div style="margin-top: 20px; text-align: center;">';
+        echo '<button id="process_selected_pending" class="ald-btn ald-btn-primary" style="margin-right: 10px;">✅ Seçilenlere Gönder</button>';
+        echo '<button id="refresh_pending_list" class="ald-btn" style="background: #6c757d; color: white;">🔄 Listeyi Yenile</button>';
+        echo '</div>';
+        
+        return ob_get_clean();
+    }
+    
+    private function auto_process_pending_customers($product_id) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ald_license_history';
+        
+        // Bu ürün için bekleyen müşterileri getir
+        $pending_customers = $wpdb->get_results($wpdb->prepare("
+            SELECT * FROM $table_name 
+            WHERE product_id = %d AND status = 'pending'
+            ORDER BY created_at ASC
+        ", $product_id));
+        
+        if (empty($pending_customers)) {
+            return 0;
+        }
+        
+        // Mevcut lisans anahtarlarını getir
+        $license_keys = get_post_meta($product_id, '_ald_license_keys', true);
+        $license_keys = is_array($license_keys) ? $license_keys : array();
+        
+        $processed = 0;
+        foreach ($pending_customers as $customer) {
+            if (empty($license_keys)) {
+                break; // Lisans anahtarı kalmadı
+            }
+            
+            $license_key = array_shift($license_keys);
+            
+            // Müşteriyi güncelle
+            $wpdb->update(
+                $table_name,
+                array(
+                    'license_key' => $license_key,
+                    'status' => 'sent',
+                    'updated_at' => current_time('mysql')
+                ),
+                array('id' => $customer->id),
+                array('%s', '%s', '%s'),
+                array('%d')
+            );
+            
+            // E-posta gönder
+            $order = wc_get_order($customer->order_id);
+            $product = wc_get_product($customer->product_id);
+            
+            if ($order && $product) {
+                $this->send_license_email($order, $product, $license_key);
+                
+                $order->add_order_note(
+                    sprintf('🔑 Bekleyen lisans anahtarı teslim edildi: %s (BERAT K Geliştirme)', $license_key),
+                    false
+                );
+            }
+            
+            $processed++;
+        }
+        
+        // Kalan lisans anahtarlarını güncelle
+        update_post_meta($product_id, '_ald_license_keys', $license_keys);
+        
+        return $processed;
+    }
+    
+    private function process_selected_pending_customers($customer_ids) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ald_license_history';
+        
+        $processed = 0;
+        
+        foreach ($customer_ids as $customer_id) {
+            $customer = $wpdb->get_row($wpdb->prepare("
+                SELECT * FROM $table_name WHERE id = %d AND status = 'pending'
+            ", $customer_id));
+            
+            if (!$customer) {
+                continue;
+            }
+            
+            // Lisans anahtarlarını kontrol et
+            $license_keys = get_post_meta($customer->product_id, '_ald_license_keys', true);
+            $license_keys = is_array($license_keys) ? $license_keys : array();
+            
+            if (empty($license_keys)) {
+                continue; // Bu ürün için lisans yok
+            }
+            
+            $license_key = array_shift($license_keys);
+            
+            // Müşteriyi güncelle
+            $wpdb->update(
+                $table_name,
+                array(
+                    'license_key' => $license_key,
+                    'status' => 'sent',
+                    'updated_at' => current_time('mysql')
+                ),
+                array('id' => $customer->id),
+                array('%s', '%s', '%s'),
+                array('%d')
+            );
+            
+            // Lisans anahtarlarını güncelle
+            update_post_meta($customer->product_id, '_ald_license_keys', $license_keys);
+            
+            // E-posta gönder
+            $order = wc_get_order($customer->order_id);
+            $product = wc_get_product($customer->product_id);
+            
+            if ($order && $product) {
+                $this->send_license_email($order, $product, $license_key);
+                
+                $order->add_order_note(
+                    sprintf('🔑 Manuel lisans anahtarı teslim edildi: %s (BERAT K Geliştirme)', $license_key),
+                    false
+                );
+            }
+            
+            $processed++;
+        }
+        
+        return $processed;
+    }
+    
     private function display_recent_sales() {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ald_license_history';
@@ -683,6 +993,7 @@ class AutoLicenseDelivery {
             FROM $table_name h
             LEFT JOIN {$wpdb->posts} p ON h.product_id = p.ID
             LEFT JOIN {$wpdb->users} u ON h.customer_id = u.ID
+            WHERE h.status = 'sent'
             ORDER BY h.created_at DESC
             LIMIT 10
         ");
@@ -787,7 +1098,7 @@ class AutoLicenseDelivery {
                 continue;
             }
             
-            if ($this->is_license_already_sent($order_id, $product_id)) {
+            if ($this->is_license_already_processed($order_id, $product_id)) {
                 continue;
             }
             
@@ -795,11 +1106,12 @@ class AutoLicenseDelivery {
             $license_keys = is_array($license_keys) ? $license_keys : array();
             
             if (!empty($license_keys)) {
+                // Lisans mevcut - normal teslimat
                 $license_key = array_shift($license_keys);
                 
                 update_post_meta($product_id, '_ald_license_keys', $license_keys);
                 
-                $this->save_delivered_license($order, $product_id, $license_key);
+                $this->save_delivered_license($order, $product_id, $license_key, 'sent');
                 
                 $this->send_license_email($order, $product, $license_key);
                 
@@ -810,11 +1122,24 @@ class AutoLicenseDelivery {
                 
                 $order->update_meta_data('_ald_license_' . $product_id, $license_key);
                 $order->save();
+            } else {
+                // Lisans yok - bekleme listesine al
+                $this->save_pending_customer($order, $product_id);
+                
+                $this->send_pending_email($order, $product);
+                
+                $order->add_order_note(
+                    sprintf('⏳ Lisans anahtarı beklemeye alındı - 24 saat içinde teslim edilecek (BERAT K Geliştirme)', ''),
+                    false
+                );
+                
+                $order->update_meta_data('_ald_license_pending_' . $product_id, 'pending');
+                $order->save();
             }
         }
     }
     
-    private function is_license_already_sent($order_id, $product_id) {
+    private function is_license_already_processed($order_id, $product_id) {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ald_license_history';
         
@@ -826,7 +1151,7 @@ class AutoLicenseDelivery {
         return !empty($existing);
     }
     
-    private function save_delivered_license($order, $product_id, $license_key) {
+    private function save_delivered_license($order, $product_id, $license_key, $status = 'sent') {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ald_license_history';
         
@@ -838,11 +1163,77 @@ class AutoLicenseDelivery {
                 'customer_id' => $order->get_customer_id(),
                 'customer_email' => $order->get_billing_email(),
                 'license_key' => $license_key,
-                'status' => 'sent',
+                'status' => $status,
                 'created_at' => current_time('mysql')
             ),
             array('%s', '%d', '%d', '%s', '%s', '%s', '%s')
         );
+    }
+    
+    private function save_pending_customer($order, $product_id) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ald_license_history';
+        
+        return $wpdb->insert(
+            $table_name,
+            array(
+                'order_id' => $order->get_id(),
+                'product_id' => $product_id,
+                'customer_id' => $order->get_customer_id(),
+                'customer_email' => $order->get_billing_email(),
+                'license_key' => '',
+                'status' => 'pending',
+                'created_at' => current_time('mysql')
+            ),
+            array('%s', '%d', '%d', '%s', '%s', '%s', '%s')
+        );
+    }
+    
+    private function send_pending_email($order, $product) {
+        $customer_email = $order->get_billing_email();
+        $customer_name = $order->get_billing_first_name();
+        $subject = sprintf('[%s] %s Ürünü İçin Lisans Anahtarınız Hazırlanıyor ⏳', get_bloginfo('name'), $product->get_name());
+        
+        $message = sprintf('
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 20px;">
+            <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <h2 style="color: #333; text-align: center; margin-bottom: 30px;">⏳ Lisans Anahtarınız Hazırlanıyor</h2>
+                <p style="font-size: 16px;">Merhaba <strong>%s</strong>,</p>
+                <p style="font-size: 14px; color: #666;">Satın aldığınız için teşekkür ederiz! <strong>%s</strong> ürünü için lisans anahtarınız şu anda hazırlanıyor.</p>
+                
+                <div style="background: linear-gradient(135deg, #ff9800 0%%, #f57c00 100%%); padding: 25px; border-radius: 12px; margin: 25px 0; text-align: center;">
+                    <div style="background: white; padding: 20px; border-radius: 8px; margin: 10px 0;">
+                        <h3 style="color: #333; margin: 0; font-size: 18px;">🔄 Lisans Hazırlama Süreci</h3>
+                        <p style="color: #666; margin: 10px 0 0 0; font-size: 14px;">24 saat içerisinde hesabınıza tanımlanacaktır</p>
+                    </div>
+                    <p style="color: white; margin: 10px 0 0 0; font-size: 12px;">Size en kısa sürede ulaşacağız</p>
+                </div>
+                
+                <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <p style="margin: 0; font-size: 14px; color: #1976d2;">
+                        💡 <strong>Bilgi:</strong> Lisans anahtarınız hazır olduğunda size e-posta ile bildirilecek ve hesap panelinizde görünecektir.
+                    </p>
+                </div>
+                
+                <div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ff9800;">
+                    <p style="margin: 0; font-size: 14px; color: #e65100;">
+                        ⚡ <strong>Hızlı İşlem:</strong> Lisans anahtarlarımız genellikle birkaç saat içinde hazır olur.
+                    </p>
+                </div>
+                
+                <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                
+                <div style="text-align: center; color: #666; font-size: 12px;">
+                    <p><strong>👨‍💻 Geliştirici:</strong> BERAT K</p>
+                    <p>📱 WhatsApp Destek: <a href="https://wa.me/905395115632" style="color: #25d366; text-decoration: none;">0539 511 56 32</a></p>
+                    <p style="margin-top: 20px;">Saygılarımızla,<br><strong>%s</strong></p>
+                </div>
+            </div>
+        </div>
+        ', $customer_name, $product->get_name(), get_bloginfo('name'));
+        
+        $headers = array('Content-Type: text/html; charset=UTF-8');
+        wp_mail($customer_email, $subject, $message, $headers);
     }
     
     private function send_license_email($order, $product, $license_key) {
@@ -934,31 +1325,86 @@ class AutoLicenseDelivery {
             return;
         }
         
-        echo '<div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">';
-        echo '<table class="shop_table shop_table_responsive" style="margin: 0; border: none;">';
-        echo '<thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">';
-        echo '<tr>';
-        echo '<th style="color: white; padding: 15px;">Ürün Adı</th>';
-        echo '<th style="color: white; padding: 15px;">Lisans Anahtarı</th>';
-        echo '<th style="color: white; padding: 15px;">Satın Alma Tarihi</th>';
-        echo '</tr>';
-        echo '</thead>';
-        echo '<tbody>';
+        // Sent ve pending lisansları ayır
+        $sent_licenses = array();
+        $pending_licenses = array();
         
         foreach ($licenses as $license) {
-            echo '<tr style="border-bottom: 1px solid #f0f0f0;">';
-            echo '<td style="padding: 15px;"><strong style="color: #333;">' . esc_html($license->product_name) . '</strong></td>';
-            echo '<td style="padding: 15px;"><code style="background: #333; color: white; padding: 10px 15px; border-radius: 6px; font-family: monospace; font-size: 13px; word-break: break-all;">' . esc_html($license->license_key) . '</code></td>';
-            echo '<td style="padding: 15px; color: #666;">' . date('d F Y', strtotime($license->created_at)) . '</td>';
-            echo '</tr>';
+            if ($license->status === 'pending') {
+                $pending_licenses[] = $license;
+            } else {
+                $sent_licenses[] = $license;
+            }
         }
         
-        echo '</tbody>';
-        echo '</table>';
-        echo '<div style="padding: 15px; background: #f8f9fa; border-top: 1px solid #eee; text-align: center;">';
-        echo '<small style="color: #666;">👨‍💻 <strong>Geliştirici:</strong> BERAT K - WhatsApp: <a href="https://wa.me/905395115632" style="color: #25d366; text-decoration: none;">0539 511 56 32</a></small>';
-        echo '</div>';
-        echo '</div>';
+        // Pending lisansları göster
+        if (!empty($pending_licenses)) {
+            echo '<div style="background: #fff3e0; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; border-left: 4px solid #ff9800;">';
+            echo '<div style="padding: 20px; background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; text-align: center;">';
+            echo '<h3 style="margin: 0; color: white;">⏳ Hazırlanan Lisans Anahtarları</h3>';
+            echo '<p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">Aşağıdaki ürünler için lisans anahtarlarınız hazırlanıyor</p>';
+            echo '</div>';
+            
+            echo '<table class="shop_table shop_table_responsive" style="margin: 0; border: none;">';
+            echo '<thead style="background: #fff3e0;">';
+            echo '<tr>';
+            echo '<th style="color: #e65100; padding: 15px;">Ürün Adı</th>';
+            echo '<th style="color: #e65100; padding: 15px;">Durum</th>';
+            echo '<th style="color: #e65100; padding: 15px;">Sipariş Tarihi</th>';
+            echo '</tr>';
+            echo '</thead>';
+            echo '<tbody>';
+            
+            foreach ($pending_licenses as $license) {
+                $waiting_time = human_time_diff(strtotime($license->created_at), current_time('timestamp'));
+                echo '<tr style="border-bottom: 1px solid #ffe0b2;">';
+                echo '<td style="padding: 15px;"><strong style="color: #333;">' . esc_html($license->product_name) . '</strong></td>';
+                echo '<td style="padding: 15px;">';
+                echo '<span style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 8px 12px; border-radius: 20px; font-size: 12px; font-weight: bold;">';
+                echo '⏳ 24 saat içinde hazır';
+                echo '</span>';
+                echo '<br><small style="color: #ff9800; margin-top: 5px; display: block;">' . $waiting_time . ' önce sipariş verildi</small>';
+                echo '</td>';
+                echo '<td style="padding: 15px; color: #666;">' . date('d F Y', strtotime($license->created_at)) . '</td>';
+                echo '</tr>';
+            }
+            
+            echo '</tbody>';
+            echo '</table>';
+            echo '<div style="padding: 15px; background: #fff3e0; text-align: center; border-top: 1px solid #ffe0b2;">';
+            echo '<small style="color: #e65100;">💡 <strong>Bilgi:</strong> Lisans anahtarınız hazır olduğunda size e-posta ile bildirilecek ve buraya eklenecektir.</small>';
+            echo '</div>';
+            echo '</div>';
+        }
+        
+        // Normal lisansları göster
+        if (!empty($sent_licenses)) {
+            echo '<div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">';
+            echo '<table class="shop_table shop_table_responsive" style="margin: 0; border: none;">';
+            echo '<thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">';
+            echo '<tr>';
+            echo '<th style="color: white; padding: 15px;">Ürün Adı</th>';
+            echo '<th style="color: white; padding: 15px;">Lisans Anahtarı</th>';
+            echo '<th style="color: white; padding: 15px;">Satın Alma Tarihi</th>';
+            echo '</tr>';
+            echo '</thead>';
+            echo '<tbody>';
+            
+            foreach ($sent_licenses as $license) {
+                echo '<tr style="border-bottom: 1px solid #f0f0f0;">';
+                echo '<td style="padding: 15px;"><strong style="color: #333;">' . esc_html($license->product_name) . '</strong></td>';
+                echo '<td style="padding: 15px;"><code style="background: #333; color: white; padding: 10px 15px; border-radius: 6px; font-family: monospace; font-size: 13px; word-break: break-all;">' . esc_html($license->license_key) . '</code></td>';
+                echo '<td style="padding: 15px; color: #666;">' . date('d F Y', strtotime($license->created_at)) . '</td>';
+                echo '</tr>';
+            }
+            
+            echo '</tbody>';
+            echo '</table>';
+            echo '<div style="padding: 15px; background: #f8f9fa; border-top: 1px solid #eee; text-align: center;">';
+            echo '<small style="color: #666;">👨‍💻 <strong>Geliştirici:</strong> BERAT K - WhatsApp: <a href="https://wa.me/905395115632" style="color: #25d366; text-decoration: none;">0539 511 56 32</a></small>';
+            echo '</div>';
+            echo '</div>';
+        }
     }
     
     public function display_order_licenses($order) {
